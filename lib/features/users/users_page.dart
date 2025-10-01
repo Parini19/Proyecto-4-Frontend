@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/mate          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {l.dart';
 import '../../core/services/user_service.dart';
 import '../../core/entities/user.dart';
 import '../../core/config.dart';

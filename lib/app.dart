@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'features/home/home_page.dart';
 import 'features/movies/movies_page.dart';
-import 'features/users/users_page.dart';
+import 'features/auth/login_page.dart';
 
 class CinemaApp extends StatelessWidget {
   const CinemaApp({super.key});
@@ -13,7 +13,7 @@ class CinemaApp extends StatelessWidget {
       routes: [
         GoRoute(path: '/', builder: (_, __) => const HomePage()),
         GoRoute(path: '/movies', builder: (_, __) => const MoviesPage()),
-        GoRoute(path: '/users', builder: (_, __) => UsersPage()),
+        GoRoute(path: '/login', builder: (_, __) => LoginPage()),
       ],
     );
 

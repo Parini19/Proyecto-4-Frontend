@@ -40,8 +40,8 @@ class HomePage extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => context.go('/users'),
-                child: const Text('Usuarios'),
+                onPressed: () => context.go('/login'),
+                child: const Text('Login'),
               ),
               const SizedBox(height: 8),
               OutlinedButton(
