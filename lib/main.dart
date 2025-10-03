@@ -3,5 +3,5 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cinema_frontend/app.dart';
 
 void main() {
-  runApp(const ProviderScope(child: CinemaApp()));
+  runApp( ProviderScope(child: CinemaApp()));
 }
