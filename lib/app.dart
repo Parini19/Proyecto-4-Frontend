@@ -149,7 +149,7 @@ class MoviePicker extends StatelessWidget {
               children: [
                 if (movie['isNew'] == 'true')
                   Container(
-                    color: Colors.redAccent,
+                    color: const Color.fromARGB(255, 148, 82, 255),
                     padding: EdgeInsets.symmetric(vertical: 4),
                     child: Center(
                       child: Text(
@@ -241,7 +241,7 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
+      appBar: AppBar(title: Text('Inicio de sesión')),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -249,7 +249,7 @@ class LoginPage extends StatelessWidget {
             TextField(
               controller: userController,
               decoration: InputDecoration(
-                labelText: 'Username',
+                labelText: 'Usuario',
                 labelStyle: TextStyle(color: Colors.white),
                 enabledBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: Colors.white),
@@ -260,7 +260,7 @@ class LoginPage extends StatelessWidget {
             TextField(
               controller: passController,
               decoration: InputDecoration(
-                labelText: 'Password',
+                labelText: 'Contraseña',
                 labelStyle: TextStyle(color: Colors.white),
                 enabledBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: Colors.white),
@@ -278,7 +278,7 @@ class LoginPage extends StatelessWidget {
                   Navigator.pushReplacementNamed(context, '/admin');
                 }
               },
-              child: Text('Login'),
+              child: Text('Ingresar'),
             ),
           ],
         ),
