@@ -38,6 +38,11 @@ class HomePage extends ConsumerWidget {
                 },
                 child: const Text('Probar /health'),
               ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('Login'),
+              ),
               const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () => context.go('/movies'),
