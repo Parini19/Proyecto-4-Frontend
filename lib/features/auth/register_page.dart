@@ -6,22 +6,25 @@ import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/cinema_button.dart';
 import '../../core/widgets/cinema_text_field.dart';
-import 'register_page.dart';
-import '../movies/pages/movies_page_new.dart';
+import 'login_page.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _acceptTerms = false;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -51,22 +54,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (!_acceptTerms) {
+      _showError('Debes aceptar los términos y condiciones');
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
       final userService = UserService(AppConfig.apiBaseUrl);
-      final response = await userService.login(
+      final response = await userService.register(
         _emailController.text.trim(),
         _passwordController.text,
+        _nameController.text.trim(),
       );
 
       if (!mounted) return;
@@ -80,7 +91,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '¡Bienvenido ${response.displayName ?? response.email}!',
+                    '¡Registro exitoso! Por favor inicia sesión',
                     style: AppTypography.bodyMedium.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
@@ -97,13 +108,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           ),
         );
 
-        // Navigate to movies page
+        // Navigate back to login
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MoviesPageNew()),
+          MaterialPageRoute(builder: (context) => LoginPage()),
         );
       } else {
-        _showError(response.message ?? 'Error al iniciar sesión');
+        _showError(response.message ?? 'Error al registrar usuario');
       }
     } catch (e) {
       if (mounted) {
@@ -157,7 +168,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   end: Alignment.bottomRight,
                   colors: [
                     AppColors.lightBackground,
-                    AppColors.primaryLight.withOpacity(0.1),
+                    AppColors.secondaryLight.withOpacity(0.1),
                   ],
                 ),
         ),
@@ -175,28 +186,34 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Logo and Title
+                        // Back Button
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(Icons.arrow_back),
+                            style: IconButton.styleFrom(
+                              backgroundColor: isDark
+                                  ? AppColors.darkSurfaceVariant
+                                  : AppColors.lightSurfaceVariant,
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: AppSpacing.md),
+
+                        // Header
                         _buildHeader(isDark),
 
                         SizedBox(height: AppSpacing.xxl),
 
-                        // Login Form Card
-                        _buildLoginCard(isDark),
+                        // Register Form Card
+                        _buildRegisterCard(isDark),
 
                         SizedBox(height: AppSpacing.xl),
 
-                        // Social Login Options
-                        _buildSocialLogin(isDark),
-
-                        SizedBox(height: AppSpacing.xl),
-
-                        // Sign Up Link
-                        _buildSignUpLink(),
-
-                        SizedBox(height: AppSpacing.lg),
-
-                        // Guest Access
-                        _buildGuestAccess(),
+                        // Login Link
+                        _buildLoginLink(),
                       ],
                     ),
                   ),
@@ -214,39 +231,55 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       children: [
         // Cinema Icon with Glow
         Container(
-          width: 100,
-          height: 100,
+          width: 90,
+          height: 90,
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.secondary,
+                AppColors.primary,
+              ],
+            ),
             shape: BoxShape.circle,
-            boxShadow: isDark ? AppColors.glowShadow : AppColors.cardShadow,
+            boxShadow: isDark
+                ? [
+                    BoxShadow(
+                      color: AppColors.secondary.withOpacity(0.3),
+                      blurRadius: 24,
+                      offset: Offset(0, 0),
+                    ),
+                  ]
+                : AppColors.cardShadow,
           ),
           child: Icon(
-            Icons.movie,
-            size: 50,
+            Icons.person_add,
+            size: 45,
             color: Colors.white,
           ),
         ),
         SizedBox(height: AppSpacing.lg),
         Text(
-          'Cinema App',
+          'Crear Cuenta',
           style: AppTypography.displaySmall.copyWith(
             fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.secondary,
           ),
         ),
         SizedBox(height: AppSpacing.xs),
         Text(
-          'Tu experiencia cinematográfica',
+          'Únete y disfruta de la mejor experiencia',
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.textSecondary,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  Widget _buildLoginCard(bool isDark) {
+  Widget _buildRegisterCard(bool isDark) {
     return Container(
       padding: AppSpacing.paddingLG,
       decoration: BoxDecoration(
@@ -257,7 +290,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         boxShadow: isDark ? AppColors.elevatedShadow : AppColors.cardShadow,
         border: isDark
             ? Border.all(
-                color: AppColors.primary.withOpacity(0.2),
+                color: AppColors.secondary.withOpacity(0.2),
                 width: 1,
               )
             : null,
@@ -269,15 +302,15 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           children: [
             // Title
             Text(
-              'Iniciar Sesión',
-              style: AppTypography.headlineMedium.copyWith(
+              'Información Personal',
+              style: AppTypography.titleLarge.copyWith(
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: AppSpacing.xs),
             Text(
-              'Ingresa tus credenciales para continuar',
+              'Por favor completa los siguientes datos',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -285,6 +318,26 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             ),
 
             SizedBox(height: AppSpacing.xl),
+
+            // Name Field
+            CinemaTextField(
+              label: 'Nombre Completo',
+              controller: _nameController,
+              hint: 'Juan Pérez',
+              prefixIcon: Icons.person_outline,
+              textCapitalization: TextCapitalization.words,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Ingresa tu nombre completo';
+                }
+                if (value.length < 3) {
+                  return 'El nombre debe tener al menos 3 caracteres';
+                }
+                return null;
+              },
+            ),
+
+            SizedBox(height: AppSpacing.md),
 
             // Email Field
             CinemaTextField(
@@ -329,43 +382,64 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 if (value.length < 6) {
                   return 'La contraseña debe tener al menos 6 caracteres';
                 }
+                if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                  return 'Debe contener al menos una mayúscula';
+                }
+                if (!RegExp(r'[0-9]').hasMatch(value)) {
+                  return 'Debe contener al menos un número';
+                }
                 return null;
               },
             ),
 
-            SizedBox(height: AppSpacing.sm),
+            SizedBox(height: AppSpacing.md),
 
-            // Forgot Password
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  // TODO: Implement forgot password
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Recuperación de contraseña próximamente'),
-                    ),
-                  );
-                },
-                child: Text(
-                  '¿Olvidaste tu contraseña?',
-                  style: AppTypography.labelMedium.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+            // Confirm Password Field
+            CinemaTextField(
+              label: 'Confirmar Contraseña',
+              controller: _confirmPasswordController,
+              hint: '••••••••',
+              prefixIcon: Icons.lock_outline,
+              obscureText: _obscureConfirmPassword,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: AppColors.textSecondary,
                 ),
+                onPressed: () {
+                  setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                },
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Confirma tu contraseña';
+                }
+                if (value != _passwordController.text) {
+                  return 'Las contraseñas no coinciden';
+                }
+                return null;
+              },
             ),
 
             SizedBox(height: AppSpacing.lg),
 
-            // Login Button
+            // Password Requirements
+            _buildPasswordRequirements(),
+
+            SizedBox(height: AppSpacing.lg),
+
+            // Terms and Conditions Checkbox
+            _buildTermsCheckbox(isDark),
+
+            SizedBox(height: AppSpacing.lg),
+
+            // Register Button
             CinemaButton(
-              text: _isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión',
-              icon: _isLoading ? null : Icons.login,
+              text: _isLoading ? 'Registrando...' : 'Crear Cuenta',
+              icon: _isLoading ? null : Icons.person_add,
               isFullWidth: true,
               size: ButtonSize.large,
-              onPressed: _isLoading ? null : _login,
+              onPressed: _isLoading ? null : _register,
             ),
           ],
         ),
@@ -373,127 +447,148 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildSocialLogin(bool isDark) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: Divider(color: AppColors.border)),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text(
-                'O continúa con',
-                style: AppTypography.labelMedium.copyWith(
+  Widget _buildPasswordRequirements() {
+    final password = _passwordController.text;
+    final hasMinLength = password.length >= 6;
+    final hasUpperCase = RegExp(r'[A-Z]').hasMatch(password);
+    final hasNumber = RegExp(r'[0-9]').hasMatch(password);
+
+    return Container(
+      padding: AppSpacing.paddingMD,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant.withOpacity(0.5),
+        borderRadius: AppSpacing.borderRadiusSM,
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Requisitos de contraseña:',
+            style: AppTypography.labelMedium.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: AppSpacing.xs),
+          _buildRequirementRow(
+            'Mínimo 6 caracteres',
+            hasMinLength,
+          ),
+          _buildRequirementRow(
+            'Al menos una mayúscula',
+            hasUpperCase,
+          ),
+          _buildRequirementRow(
+            'Al menos un número',
+            hasNumber,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequirementRow(String text, bool isMet) {
+    return Padding(
+      padding: EdgeInsets.only(top: AppSpacing.xs),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle : Icons.circle_outlined,
+            size: 16,
+            color: isMet ? AppColors.success : AppColors.textTertiary,
+          ),
+          SizedBox(width: AppSpacing.xs),
+          Text(
+            text,
+            style: AppTypography.bodySmall.copyWith(
+              color: isMet ? AppColors.success : AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTermsCheckbox(bool isDark) {
+    return InkWell(
+      onTap: () => setState(() => _acceptTerms = !_acceptTerms),
+      borderRadius: AppSpacing.borderRadiusSM,
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: _acceptTerms
+                  ? AppColors.primary
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: _acceptTerms ? AppColors.primary : AppColors.border,
+                width: 2,
+              ),
+            ),
+            child: _acceptTerms
+                ? Icon(Icons.check, size: 16, color: Colors.white)
+                : null,
+          ),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
+                children: [
+                  TextSpan(text: 'Acepto los '),
+                  TextSpan(
+                    text: 'Términos y Condiciones',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  TextSpan(text: ' y la '),
+                  TextSpan(
+                    text: 'Política de Privacidad',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
               ),
             ),
-            Expanded(child: Divider(color: AppColors.border)),
-          ],
-        ),
-        SizedBox(height: AppSpacing.lg),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildSocialButton(
-              icon: Icons.g_mobiledata,
-              label: 'Google',
-              onTap: () {
-                // TODO: Implement Google login
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Login con Google próximamente')),
-                );
-              },
-              isDark: isDark,
-            ),
-            SizedBox(width: AppSpacing.md),
-            _buildSocialButton(
-              icon: Icons.apple,
-              label: 'Apple',
-              onTap: () {
-                // TODO: Implement Apple login
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Login con Apple próximamente')),
-                );
-              },
-              isDark: isDark,
-            ),
-            SizedBox(width: AppSpacing.md),
-            _buildSocialButton(
-              icon: Icons.facebook,
-              label: 'Facebook',
-              onTap: () {
-                // TODO: Implement Facebook login
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Login con Facebook próximamente')),
-                );
-              },
-              isDark: isDark,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required bool isDark,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppSpacing.borderRadiusMD,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkSurfaceVariant
-              : AppColors.lightSurfaceVariant,
-          borderRadius: AppSpacing.borderRadiusMD,
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-            width: 1,
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 32, color: AppColors.primary),
-            SizedBox(height: 4),
-            Text(
-              label,
-              style: AppTypography.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildSignUpLink() {
+  Widget _buildLoginLink() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          '¿No tienes cuenta? ',
+          '¿Ya tienes cuenta? ',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
         ),
         TextButton(
           onPressed: () {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => RegisterPage()),
+              MaterialPageRoute(builder: (context) => LoginPage()),
             );
           },
           child: Text(
-            'Regístrate',
+            'Inicia Sesión',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.w700,
@@ -501,27 +596,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildGuestAccess() {
-    return TextButton.icon(
-      onPressed: () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MoviesPageNew()),
-        );
-      },
-      icon: Icon(Icons.arrow_forward, size: 18),
-      label: Text(
-        'Continuar como invitado',
-        style: AppTypography.bodyMedium.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      style: TextButton.styleFrom(
-        foregroundColor: AppColors.textSecondary,
-      ),
     );
   }
 }
