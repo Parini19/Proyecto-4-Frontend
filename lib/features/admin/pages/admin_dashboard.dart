@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/services/user_service.dart';
 import 'movies_management_page.dart';
 import 'screenings_management_page.dart';
 import 'users_management_page.dart';
-import '../../movies/pages/movies_page_new.dart';
+import '../../home/home_page.dart';
+import '../../auth/login_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -16,6 +18,7 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
+  final UserService _userService = UserService();
 
   final List<Widget> _pages = [
     _DashboardOverview(),
@@ -152,7 +155,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => MoviesPageNew()),
+                      MaterialPageRoute(builder: (context) => HomePage()),
                     );
                   },
                   isDark: isDark,
@@ -185,11 +188,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => MoviesPageNew()),
-              );
+            onTap: () async {
+              await _userService.logout();
+              if (mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginPage()),
+                );
+              }
             },
           ),
         ],

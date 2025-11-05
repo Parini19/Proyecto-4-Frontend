@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../core/services/user_service.dart';
-import '../../core/config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/cinema_button.dart';
 import '../../core/widgets/cinema_text_field.dart';
 import 'register_page.dart';
-import '../movies/pages/movies_page_new.dart';
+import '../home/home_page.dart';
+import '../admin/pages/admin_dashboard.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -63,7 +63,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     setState(() => _isLoading = true);
 
     try {
-      final userService = UserService(AppConfig.apiBaseUrl);
+      final userService = UserService();
       final response = await userService.login(
         _emailController.text.trim(),
         _passwordController.text,
@@ -97,10 +97,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           ),
         );
 
-        // Navigate to movies page
+        // Navigate based on user role
+        final role = response.role?.toLowerCase() ?? 'user';
+        final Widget destination = role == 'admin' ? AdminDashboard() : HomePage();
+
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MoviesPageNew()),
+          MaterialPageRoute(builder: (context) => destination),
         );
       } else {
         _showError(response.message ?? 'Error al iniciar sesión');
@@ -148,56 +151,62 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: isDark
-              ? AppColors.cinemaGradient
-              : LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.lightBackground,
-                    AppColors.primaryLight.withOpacity(0.1),
-                  ],
-                ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
+      body: SingleChildScrollView(
+        child: Container(
+          width: double.infinity,
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height,
+          ),
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? AppColors.cinemaGradient
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.lightBackground,
+                      AppColors.primaryLight.withOpacity(0.1),
+                    ],
+                  ),
+          ),
+          child: SafeArea(
+            child: Padding(
               padding: AppSpacing.pagePadding,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 450),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Logo and Title
-                        _buildHeader(isDark),
+              child: Center(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 450),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Logo and Title
+                          _buildHeader(isDark),
 
-                        SizedBox(height: AppSpacing.xxl),
+                          SizedBox(height: AppSpacing.xxl),
 
-                        // Login Form Card
-                        _buildLoginCard(isDark),
+                          // Login Form Card
+                          _buildLoginCard(isDark),
 
-                        SizedBox(height: AppSpacing.xl),
+                          SizedBox(height: AppSpacing.xl),
 
-                        // Social Login Options
-                        _buildSocialLogin(isDark),
+                          // Social Login Options
+                          _buildSocialLogin(isDark),
 
-                        SizedBox(height: AppSpacing.xl),
+                          SizedBox(height: AppSpacing.xl),
 
-                        // Sign Up Link
-                        _buildSignUpLink(),
+                          // Sign Up Link
+                          _buildSignUpLink(),
 
-                        SizedBox(height: AppSpacing.lg),
+                          SizedBox(height: AppSpacing.lg),
 
-                        // Guest Access
-                        _buildGuestAccess(),
-                      ],
+                          // Guest Access
+                          _buildGuestAccess(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -229,7 +238,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         SizedBox(height: AppSpacing.lg),
         Text(
-          'Cinema App',
+          'Cinema',
           style: AppTypography.displaySmall.copyWith(
             fontWeight: FontWeight.bold,
             color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
@@ -237,7 +246,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         SizedBox(height: AppSpacing.xs),
         Text(
-          'Tu experiencia cinematográfica',
+          'Reserva tus boletos en línea',
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -509,7 +518,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       onPressed: () {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MoviesPageNew()),
+          MaterialPageRoute(builder: (context) => HomePage()),
         );
       },
       icon: Icon(Icons.arrow_forward, size: 18),

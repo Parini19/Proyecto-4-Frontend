@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/services/user_service.dart';
-import '../../core/config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
@@ -73,11 +72,11 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
     setState(() => _isLoading = true);
 
     try {
-      final userService = UserService(AppConfig.apiBaseUrl);
+      final userService = UserService();
       final response = await userService.register(
-        _emailController.text.trim(),
-        _passwordController.text,
-        _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        displayName: _nameController.text.trim(),
       );
 
       if (!mounted) return;
@@ -159,62 +158,68 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: isDark
-              ? AppColors.cinemaGradient
-              : LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.lightBackground,
-                    AppColors.secondaryLight.withOpacity(0.1),
-                  ],
-                ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
+      body: SingleChildScrollView(
+        child: Container(
+          width: double.infinity,
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height,
+          ),
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? AppColors.cinemaGradient
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.lightBackground,
+                      AppColors.secondaryLight.withOpacity(0.1),
+                    ],
+                  ),
+          ),
+          child: SafeArea(
+            child: Padding(
               padding: AppSpacing.pagePadding,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 450),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Back Button
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(Icons.arrow_back),
-                            style: IconButton.styleFrom(
-                              backgroundColor: isDark
-                                  ? AppColors.darkSurfaceVariant
-                                  : AppColors.lightSurfaceVariant,
+              child: Center(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 450),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Back Button
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: Icon(Icons.arrow_back),
+                              style: IconButton.styleFrom(
+                                backgroundColor: isDark
+                                    ? AppColors.darkSurfaceVariant
+                                    : AppColors.lightSurfaceVariant,
+                              ),
                             ),
                           ),
-                        ),
 
-                        SizedBox(height: AppSpacing.md),
+                          SizedBox(height: AppSpacing.md),
 
-                        // Header
-                        _buildHeader(isDark),
+                          // Header
+                          _buildHeader(isDark),
 
-                        SizedBox(height: AppSpacing.xxl),
+                          SizedBox(height: AppSpacing.xxl),
 
-                        // Register Form Card
-                        _buildRegisterCard(isDark),
+                          // Register Form Card
+                          _buildRegisterCard(isDark),
 
-                        SizedBox(height: AppSpacing.xl),
+                          SizedBox(height: AppSpacing.xl),
 
-                        // Login Link
-                        _buildLoginLink(),
-                      ],
+                          // Login Link
+                          _buildLoginLink(),
+                        ],
+                      ),
                     ),
                   ),
                 ),

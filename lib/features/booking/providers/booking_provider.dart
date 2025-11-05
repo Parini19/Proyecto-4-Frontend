@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/models/movie.dart';
+import '../../../core/models/movie_model.dart';
 import '../../../core/models/showtime.dart';
 import '../../../core/models/seat.dart';
 import '../../../core/models/food_item.dart';
 
 /// State for the current booking flow
 class BookingState {
-  final Movie? selectedMovie;
+  final MovieModel? selectedMovie;
   final Showtime? selectedShowtime;
   final List<Seat> selectedSeats;
   final List<CartItem> foodCart;
@@ -19,7 +19,7 @@ class BookingState {
   });
 
   BookingState copyWith({
-    Movie? selectedMovie,
+    MovieModel? selectedMovie,
     Showtime? selectedShowtime,
     List<Seat>? selectedSeats,
     List<CartItem>? foodCart,
@@ -58,7 +58,7 @@ class BookingNotifier extends Notifier<BookingState> {
   @override
   BookingState build() => const BookingState();
 
-  void setMovie(Movie movie) {
+  void setMovie(MovieModel movie) {
     state = state.copyWith(selectedMovie: movie);
   }
 

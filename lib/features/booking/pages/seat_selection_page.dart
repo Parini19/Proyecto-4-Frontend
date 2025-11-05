@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/models/movie.dart';
+import '../../../core/models/movie_model.dart';
 import '../../../core/models/showtime.dart';
 import '../../../core/models/seat.dart';
 import '../../../core/theme/app_colors.dart';
@@ -13,7 +13,7 @@ import '../widgets/screen_indicator.dart';
 import 'food_menu_page.dart';
 
 class SeatSelectionPage extends ConsumerStatefulWidget {
-  final Movie movie;
+  final MovieModel movie;
   final String showtime;
 
   const SeatSelectionPage({

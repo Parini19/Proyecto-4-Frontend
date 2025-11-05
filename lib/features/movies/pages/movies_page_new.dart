@@ -426,7 +426,7 @@ class MovieDetailSheet extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => SeatSelectionPage(
-                                      movie: movie,
+                                      movie: movie.toMovieModel(),
                                       showtime: time,
                                     ),
                                   ),

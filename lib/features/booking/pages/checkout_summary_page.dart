@@ -85,7 +85,7 @@ class CheckoutSummaryPage extends ConsumerWidget {
           ClipRRect(
             borderRadius: AppSpacing.borderRadiusSM,
             child: Image.network(
-              movie.posterUrl,
+              movie.posterUrl ?? 'https://via.placeholder.com/300x450?text=No+Image',
               width: 80,
               height: 120,
               fit: BoxFit.cover,

@@ -1,3 +1,5 @@
+import 'movie_model.dart';
+
 class Movie {
   final String id;
   final String title;
@@ -71,6 +73,26 @@ class Movie {
       return '${hours}h ${minutes}min';
     }
     return '${minutes}min';
+  }
+
+  // Convert to MovieModel
+  MovieModel toMovieModel() {
+    return MovieModel(
+      id: id,
+      title: title,
+      description: description,
+      rating: rating.toString(),
+      duration: durationFormatted,
+      genre: genre,
+      classification: classification,
+      colors: ['#000000', '#FFFFFF'], // Default colors
+      director: director,
+      cast: null,
+      year: null,
+      showtimes: showtimes,
+      trailer: trailerUrl,
+      posterUrl: posterUrl,
+    );
   }
 }
 

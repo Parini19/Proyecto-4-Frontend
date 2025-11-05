@@ -1,13 +1,12 @@
-import 'package:flutter/mate          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {l.dart';
+import 'package:flutter/material.dart';
 import '../../core/services/user_service.dart';
 import '../../core/entities/user.dart';
-import '../../core/config.dart';
 
 class UsersPage extends StatefulWidget {
+  const UsersPage({super.key});
+
   @override
-  _UsersPageState createState() => _UsersPageState();
+  State<UsersPage> createState() => _UsersPageState();
 }
 
 class _UsersPageState extends State<UsersPage> {
@@ -16,22 +15,22 @@ class _UsersPageState extends State<UsersPage> {
   @override
   void initState() {
     super.initState();
-    _usersFuture = UserService(AppConfig.apiBaseUrl).fetchUsers();
+    _usersFuture = UserService().fetchUsers();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Users')),
+      appBar: AppBar(title: const Text('Users')),
       body: FutureBuilder<List<User>>(
         future: _usersFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: [0m${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No users found.'));
+            return const Center(child: Text('No users found.'));
           }
           final users = snapshot.data!;
           return ListView.builder(
@@ -41,7 +40,7 @@ class _UsersPageState extends State<UsersPage> {
               return ListTile(
                 title: Text(user.displayName),
                 subtitle: Text(user.email),
-                trailing: user.disabled ? Icon(Icons.block) : null,
+                trailing: user.disabled ? const Icon(Icons.block) : null,
               );
             },
           );

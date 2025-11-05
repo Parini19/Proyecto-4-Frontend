@@ -1,6 +1,6 @@
 class AppConfig {
   static const apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://localhost:7238',
+    defaultValue: 'http://localhost:5000',  // HTTP para desarrollo (sin certificados)
   );
 }
