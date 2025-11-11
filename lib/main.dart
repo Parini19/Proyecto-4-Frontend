@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/api_service.dart';
+import 'core/providers/theme_provider.dart';
 import 'features/home/home_page.dart';
 import 'features/auth/login_page.dart';
 import 'features/admin/pages/admin_dashboard.dart';
@@ -17,17 +18,20 @@ void main() async {
   runApp(const ProviderScope(child: CinemaApp()));
 }
 
-class CinemaApp extends StatelessWidget {
+class CinemaApp extends ConsumerWidget {
   const CinemaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch theme mode from provider
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
       title: 'Cinema App',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,        // Light mode (default)
+      theme: AppTheme.lightTheme,        // Light mode
       darkTheme: AppTheme.darkTheme,     // Dark mode
-      themeMode: ThemeMode.system,       // Follows system preference
+      themeMode: themeMode,              // Controlled by provider (system/light/dark)
       home: const AuthenticationWrapper(),
     );
   }

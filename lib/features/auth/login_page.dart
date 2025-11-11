@@ -248,7 +248,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         Text(
           'Reserva tus boletos en línea',
           style: AppTypography.bodyLarge.copyWith(
-            color: AppColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -288,7 +288,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             Text(
               'Ingresa tus credenciales para continuar',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -325,7 +325,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 onPressed: () {
                   setState(() => _obscurePassword = !_obscurePassword);
@@ -387,17 +387,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       children: [
         Row(
           children: [
-            Expanded(child: Divider(color: AppColors.border)),
+            Expanded(child: Divider(color: Theme.of(context).colorScheme.outline)),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Text(
                 'O continúa con',
                 style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
-            Expanded(child: Divider(color: AppColors.border)),
+            Expanded(child: Divider(color: Theme.of(context).colorScheme.outline)),
           ],
         ),
         SizedBox(height: AppSpacing.lg),
@@ -475,7 +475,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             Text(
               label,
               style: AppTypography.labelSmall.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -491,7 +491,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         Text(
           '¿No tienes cuenta? ',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         TextButton(
@@ -529,7 +529,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
       ),
       style: TextButton.styleFrom(
-        foregroundColor: AppColors.textSecondary,
+        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }

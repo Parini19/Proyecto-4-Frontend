@@ -142,7 +142,7 @@ class MovieCard extends StatelessWidget {
             Text(
               '${movie.genre} • ${movie.durationFormatted}',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -157,7 +157,7 @@ class MovieCard extends StatelessWidget {
                 vertical: AppSpacing.xs,
               ),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Theme.of(context).colorScheme.outline),
                 borderRadius: AppSpacing.borderRadiusXS,
               ),
               child: Text(

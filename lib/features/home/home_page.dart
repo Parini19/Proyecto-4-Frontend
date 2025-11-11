@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
-import '../../core/theme/app_spacing.dart';
 import '../../core/data/movies_data.dart';
 import '../../core/models/movie_model.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/user_service.dart';
+import '../../core/providers/theme_provider.dart';
 import '../auth/login_page.dart';
 import '../movies/pages/movie_details_page.dart';
 import 'dart:async';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _carteleraKey = GlobalKey();
   final GlobalKey _proximosKey = GlobalKey();
@@ -248,6 +249,11 @@ class _HomePageState extends State<HomePage> {
                 ],
 
                 Spacer(),
+
+                // Theme Toggle Button
+                _buildThemeToggle(isDark),
+
+                SizedBox(width: 8),
 
                 // Search Icon/Bar
                 if (_isSearching)
@@ -894,7 +900,7 @@ class _HomePageState extends State<HomePage> {
             Text(
               movie.genre.split(' • ').first, // Solo mostrar primer género
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 12,
               ),
               maxLines: 1,
@@ -909,17 +915,17 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   movie.rating,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 SizedBox(width: 8),
-                Icon(Icons.access_time, color: AppColors.textSecondary, size: 14),
+                Icon(Icons.access_time, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 14),
                 SizedBox(width: 4),
                 Text(
                   movie.duration,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 11,
                   ),
                 ),
@@ -964,7 +970,7 @@ class _HomePageState extends State<HomePage> {
             Text(
               '${_searchResults.length} ${_searchResults.length == 1 ? 'resultado' : 'resultados'} para "${_searchController.text}"',
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           SizedBox(height: 32),
@@ -998,14 +1004,14 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(
               fontSize: isDesktop ? 24 : 20,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           SizedBox(height: 8),
           Text(
             'Escribe el nombre de una película o género',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
             ),
           ),
         ],
@@ -1030,14 +1036,14 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(
               fontSize: isDesktop ? 24 : 20,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           SizedBox(height: 8),
           Text(
             'Intenta con otro término de búsqueda',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
             ),
           ),
         ],
@@ -1072,7 +1078,7 @@ class _HomePageState extends State<HomePage> {
           Text(
             '© 2025 Cinema App. Todos los derechos reservados.',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -1253,6 +1259,100 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildThemeToggle(bool isDark) {
+    final themeMode = ref.watch(themeProvider);
+    final themeNotifier = ref.read(themeProvider.notifier);
+
+    return PopupMenuButton<ThemeMode>(
+      offset: Offset(0, 50),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      icon: Icon(
+        themeNotifier.themeModeIcon,
+        color: _isScrolled
+            ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
+            : Colors.white,
+      ),
+      tooltip: 'Cambiar tema',
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: ThemeMode.system,
+          child: Row(
+            children: [
+              Icon(
+                Icons.brightness_auto,
+                size: 20,
+                color: themeMode == ThemeMode.system ? AppColors.primary : null,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Sistema',
+                style: TextStyle(
+                  color: themeMode == ThemeMode.system ? AppColors.primary : null,
+                  fontWeight: themeMode == ThemeMode.system ? FontWeight.w600 : null,
+                ),
+              ),
+              if (themeMode == ThemeMode.system) ...[
+                Spacer(),
+                Icon(Icons.check, size: 20, color: AppColors.primary),
+              ],
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: ThemeMode.light,
+          child: Row(
+            children: [
+              Icon(
+                Icons.light_mode,
+                size: 20,
+                color: themeMode == ThemeMode.light ? AppColors.primary : null,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Claro',
+                style: TextStyle(
+                  color: themeMode == ThemeMode.light ? AppColors.primary : null,
+                  fontWeight: themeMode == ThemeMode.light ? FontWeight.w600 : null,
+                ),
+              ),
+              if (themeMode == ThemeMode.light) ...[
+                Spacer(),
+                Icon(Icons.check, size: 20, color: AppColors.primary),
+              ],
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: ThemeMode.dark,
+          child: Row(
+            children: [
+              Icon(
+                Icons.dark_mode,
+                size: 20,
+                color: themeMode == ThemeMode.dark ? AppColors.primary : null,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Oscuro',
+                style: TextStyle(
+                  color: themeMode == ThemeMode.dark ? AppColors.primary : null,
+                  fontWeight: themeMode == ThemeMode.dark ? FontWeight.w600 : null,
+                ),
+              ),
+              if (themeMode == ThemeMode.dark) ...[
+                Spacer(),
+                Icon(Icons.check, size: 20, color: AppColors.primary),
+              ],
+            ],
+          ),
+        ),
+      ],
+      onSelected: (mode) {
+        themeNotifier.setThemeMode(mode);
+      },
     );
   }
 }
