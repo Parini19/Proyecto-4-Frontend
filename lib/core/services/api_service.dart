@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Base URL - Cambiar según el ambiente
-  static const String _baseUrl = 'http://localhost:5000/api';
+  static const String _baseUrl = 'https://localhost:7238/api';
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();

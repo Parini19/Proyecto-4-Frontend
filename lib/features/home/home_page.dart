@@ -10,6 +10,7 @@ import '../../core/services/user_service.dart';
 import '../../core/providers/theme_provider.dart';
 import '../auth/login_page.dart';
 import '../movies/pages/movie_details_page.dart';
+
 import 'dart:async';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -241,6 +242,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         if (_authService.isAuthenticated) ...[
                           _buildNavLink('Mis Boletos', false, isDark),
                           _buildNavLink('Historial', false, isDark),
+                          _buildNavLink('Food Orders', false, isDark),
                         ],
                         _buildNavLink('Promociones', false, isDark),
                       ],
@@ -767,7 +769,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   }) {
     final isDesktop = size.width > 1024;
     final isTablet = size.width > 768 && size.width <= 1024;
-    final isMobile = size.width <= 768;
 
     return Container(
       padding: EdgeInsets.symmetric(

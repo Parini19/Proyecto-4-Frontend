@@ -1,25 +1,117 @@
-import 'package:cinema_frontend/core/services/api_service.dart';
-import 'package:cinema_frontend/core/services/auth_service.dart';
+import 'dart:math';
 import '../entities/user.dart';
+import 'api_service.dart';
+import 'auth_service.dart';
 
 class UserService {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
 
-  Future<List<User>> fetchUsers() async {
+  /// Get all users from the backend
+  Future<List<User>> getAllUsers() async {
     try {
       final response = await _apiService.get('/FirebaseTest/get-all-users');
-      if (response.success && response.data != null) {
-        final users = (response.data['users'] as List)
-            .map((u) => User.fromJson(u))
-            .toList();
-        return users;
-      } else {
-        throw Exception('Failed to load users');
+
+      if (!response.success) {
+        return [];
       }
+
+      if (response.data == null) {
+        return [];
+      }
+
+      // El backend devuelve { success: true, users: [...] }
+      final List<dynamic> usersJson = response.data['users'] as List<dynamic>;
+
+      return usersJson.map((json) => User.fromJson(json)).toList();
     } catch (e) {
-      print('Error fetching users: $e');
-      throw Exception('Failed to load users: $e');
+      return [];
+    }
+  }
+
+  /// Legacy method for compatibility
+  Future<List<User>> fetchUsers() async {
+    return getAllUsers();
+  }
+
+  /// Get a specific user by UID
+  Future<User?> getUserById(String uid) async {
+    try {
+      final response = await _apiService.get('/FirebaseTest/get-user/$uid');
+
+      if (!response.success || response.data == null) {
+        return null;
+      }
+
+      // El backend devuelve { success: true, user: {...} }
+      return User.fromJson(response.data['user']);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Create a new user (admin function)
+  Future<bool> createUser({
+    required String email,
+    required String password,
+    required String displayName,
+    String role = 'user',
+  }) async {
+    try {
+      // Generate a unique UID for the new user
+      final userUid = _generateUserId();
+      
+      final response = await _apiService.post('/FirebaseTest/add-user', body: {
+        'uid': userUid, // Include the UID in the request body as required by backend validation
+        'email': email,
+        'password': password,
+        'displayName': displayName,
+        'role': role,
+      });
+
+      return response.success;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Update user information
+  Future<bool> updateUser(User user) async {
+    try {
+      final response = await _apiService.put('/FirebaseTest/edit-user/${user.uid}', body: {
+        'uid': user.uid, // Include the UID in the request body as required by backend validation
+        'displayName': user.displayName,
+        'role': user.role,
+        'disabled': user.disabled,
+      });
+
+      return response.success;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Delete a user
+  Future<bool> deleteUser(String uid) async {
+    try {
+      final response = await _apiService.delete('/FirebaseTest/delete-user/$uid');
+      return response.success;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Toggle user status (enable/disable)
+  Future<bool> toggleUserStatus(String uid, bool disabled) async {
+    try {
+      final response = await _apiService.put('/FirebaseTest/toggle-user-status/$uid', body: {
+        'uid': uid, // Include the UID in the request body as required by backend validation
+        'disabled': disabled,
+      });
+
+      return response.success;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -64,7 +156,6 @@ class UserService {
         );
       }
     } catch (e) {
-      print('Login error: $e');
       return LoginResponse(
         success: false,
         message: 'Error de conexión: $e',
@@ -104,7 +195,6 @@ class UserService {
         );
       }
     } catch (e) {
-      print('Registration error: $e');
       return LoginResponse(
         success: false,
         message: 'Error de conexión: $e',
@@ -134,6 +224,13 @@ class UserService {
   // Verificar si es user
   bool isUser() {
     return _authService.isUser;
+  }
+
+  /// Generate a unique ID for new users
+  String _generateUserId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final random = Random().nextInt(999);
+    return 'USER_${timestamp}_$random';
   }
 }
 

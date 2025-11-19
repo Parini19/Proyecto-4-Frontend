@@ -12,6 +12,7 @@ class MoviesData {
       genre: 'Ciencia Ficción • Aventura',
       classification: 'PG-13',
       colors: ['#E6A23C', '#F56C6C', '#1A1A1A'],
+      posterUrl: 'https://res.cloudinary.com/dntcviwyy/image/upload/v1763447056/Star_Wars_Style_A_poster_1977_d7pfe2.webp',
       director: 'Denis Villeneuve',
       cast: ['Timothée Chalamet', 'Zendaya', 'Rebecca Ferguson', 'Josh Brolin'],
       year: '2024',
