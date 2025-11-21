@@ -315,7 +315,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
       padding: AppSpacing.pagePadding,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.55, // Adjusted for standard movie poster ratio (2:3.6)
         crossAxisSpacing: AppSpacing.md,
         mainAxisSpacing: AppSpacing.md,
       ),

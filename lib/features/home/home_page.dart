@@ -8,6 +8,7 @@ import '../../core/models/movie_model.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/user_service.dart';
 import '../../core/providers/theme_provider.dart';
+import '../../core/widgets/floating_chat_bubble.dart';
 import '../auth/login_page.dart';
 import '../movies/pages/movie_details_page.dart';
 
@@ -162,6 +163,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
           // App Bar (Netflix-style - transparent when at top)
           _buildAppBar(isDark),
+
+          // Chat IA flotante
+          const FloatingChatBubble(),
         ],
       ),
     );

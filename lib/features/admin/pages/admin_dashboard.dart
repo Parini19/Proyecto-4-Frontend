@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/services/user_service.dart';
+import '../../../core/widgets/floating_chat_bubble.dart';
 import 'movies_management_page.dart';
 import 'screenings_management_page.dart';
 import 'theater_rooms_management_page.dart';
@@ -38,15 +39,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          // Side Navigation
-          _buildSideNav(isDark),
+          Row(
+            children: [
+              // Side Navigation
+              _buildSideNav(isDark),
 
-          // Main Content
-          Expanded(
-            child: _pages[_selectedIndex],
+              // Main Content
+              Expanded(
+                child: _pages[_selectedIndex],
+              ),
+            ],
           ),
+
+          // Chat IA flotante
+          const FloatingChatBubble(),
         ],
       ),
     );
