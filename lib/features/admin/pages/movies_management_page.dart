@@ -4,6 +4,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
 import '../../../core/widgets/cinema_text_field.dart';
+import '../../../core/widgets/image_picker_field.dart';
 import '../../../core/models/movie_model.dart';
 import '../../../core/services/movies_service.dart';
 
@@ -481,9 +482,11 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
     final descriptionController = TextEditingController(text: movie?.description ?? '');
     final directorController = TextEditingController(text: movie?.director ?? '');
     final yearController = TextEditingController(text: movie?.year ?? '');
-    final posterUrlController = TextEditingController(text: movie?.posterUrl ?? '');
     final ratingController = TextEditingController(text: movie?.rating ?? '');
     final classificationController = TextEditingController(text: movie?.classification ?? '');
+
+    // Variable to store selected image in base64
+    String? selectedPosterBase64;
 
     showDialog(
       context: context,
@@ -537,11 +540,12 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                   prefixIcon: Icons.person,
                 ),
                 SizedBox(height: AppSpacing.md),
-                CinemaTextField(
-                  label: 'URL del Poster',
-                  controller: posterUrlController,
-                  hint: 'https://ejemplo.com/poster.jpg',
-                  prefixIcon: Icons.image,
+                ImagePickerField(
+                  initialImageUrl: movie?.posterUrl,
+                  onImageSelected: (base64Image) {
+                    selectedPosterBase64 = base64Image;
+                  },
+                  label: 'Poster de la Película',
                 ),
                 SizedBox(height: AppSpacing.md),
                 CinemaTextField(
@@ -625,16 +629,16 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                   year: yearController.text.trim(),
                   showtimes: null,
                   trailer: null,
-                  posterUrl: posterUrlController.text.trim(),
+                  posterUrl: movie?.posterUrl ?? '', // Keep existing URL if updating and no new image
                 );
 
                 bool success;
                 if (movie == null) {
-                  // Create new movie
-                  success = await _moviesService.createMovie(newMovie);
+                  // Create new movie with optional image upload
+                  success = await _moviesService.createMovie(newMovie, posterBase64: selectedPosterBase64);
                 } else {
-                  // Update existing movie
-                  success = await _moviesService.updateMovie(newMovie);
+                  // Update existing movie with optional new image
+                  success = await _moviesService.updateMovie(newMovie, posterBase64: selectedPosterBase64);
                 }
 
                 // Clear loading snackbar
@@ -649,9 +653,38 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                             : 'Película actualizada exitosamente',
                       ),
                       backgroundColor: AppColors.success,
+                      duration: Duration(seconds: 2),
                     ),
                   );
-                  _loadMovies(); // Refresh the list
+
+                  // Optimistic update: Update local state immediately
+                  setState(() {
+                    if (movie == null) {
+                      // Add new movie
+                      _movies.add(newMovie);
+                    } else {
+                      // Update existing movie
+                      final index = _movies.indexWhere((m) => m.id == movie.id);
+                      if (index != -1) {
+                        _movies[index] = newMovie;
+                      }
+                    }
+                    // Update filtered list
+                    _filteredMovies = _searchQuery.isEmpty
+                        ? List.from(_movies)
+                        : _movies.where((m) =>
+                            m.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                            m.genre.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                            (m.director?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
+                          ).toList();
+                  });
+
+                  // Then refresh from backend after a delay to confirm
+                  Future.delayed(Duration(milliseconds: 1500)).then((_) {
+                    if (mounted) {
+                      _loadMovies();
+                    }
+                  });
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -685,7 +718,6 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
       descriptionController.dispose();
       directorController.dispose();
       yearController.dispose();
-      posterUrlController.dispose();
       ratingController.dispose();
       classificationController.dispose();
     });
@@ -726,18 +758,31 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
 
               try {
                 final success = await _moviesService.deleteMovie(movie.id);
-                
+
                 // Clear the loading snackbar
                 ScaffoldMessenger.of(context).clearSnackBars();
-                
+
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Película eliminada exitosamente'),
                       backgroundColor: AppColors.success,
+                      duration: Duration(seconds: 2),
                     ),
                   );
-                  _loadMovies(); // Refresh the list
+
+                  // Optimistic update: Remove movie from local state immediately
+                  setState(() {
+                    _movies.removeWhere((m) => m.id == movie.id);
+                    _filteredMovies.removeWhere((m) => m.id == movie.id);
+                  });
+
+                  // Then refresh from backend after a delay to confirm
+                  Future.delayed(Duration(milliseconds: 1500)).then((_) {
+                    if (mounted) {
+                      _loadMovies();
+                    }
+                  });
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

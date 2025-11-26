@@ -5,14 +5,104 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
 import '../../../core/models/seat.dart';
+import '../../../core/models/booking.dart';
+import '../../../core/providers/service_providers.dart';
+import '../../../core/services/auth_service.dart';
 import '../providers/booking_provider.dart';
 import 'payment_page.dart';
 
-class CheckoutSummaryPage extends ConsumerWidget {
+class CheckoutSummaryPage extends ConsumerStatefulWidget {
   const CheckoutSummaryPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CheckoutSummaryPage> createState() => _CheckoutSummaryPageState();
+}
+
+class _CheckoutSummaryPageState extends ConsumerState<CheckoutSummaryPage> {
+  bool _isCreatingBooking = false;
+
+  Future<void> _handleContinueToPayment() async {
+    final bookingState = ref.read(bookingProvider);
+    final authService = AuthService();
+
+    // Check if user is authenticated
+    if (!authService.isAuthenticated || authService.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para continuar'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Validate booking state
+    if (bookingState.selectedShowtime == null || bookingState.selectedSeats.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No hay asientos seleccionados'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isCreatingBooking = true;
+    });
+
+    try {
+      final bookingService = ref.read(bookingServiceProvider);
+
+      // Calculate ticket price (average of all selected seats)
+      final ticketPrice = bookingState.seatsTotal / bookingState.selectedSeats.length;
+
+      // Create booking request
+      final request = CreateBookingRequest(
+        userId: authService.currentUser!.uid,
+        screeningId: bookingState.selectedShowtime!.id,
+        seatNumbers: bookingState.selectedSeats.map((s) => s.seatLabel).toList(),
+        ticketPrice: ticketPrice,
+        foodOrderId: null, // TODO: Implement food order ID if needed
+        subtotalFood: bookingState.foodTotal,
+      );
+
+      // Create booking
+      final booking = await bookingService.createBooking(request);
+
+      // Save booking ID to state
+      ref.read(bookingProvider.notifier).setBookingId(booking.id);
+
+      // Navigate to payment page
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PaymentPage(),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al crear la reserva: $e'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreatingBooking = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bookingState = ref.watch(bookingProvider);
 
     return Scaffold(
@@ -328,18 +418,11 @@ class CheckoutSummaryPage extends ConsumerWidget {
             ),
             SizedBox(height: AppSpacing.md),
             CinemaButton(
-              text: 'Continuar al Pago',
+              text: _isCreatingBooking ? 'Creando reserva...' : 'Continuar al Pago',
               icon: Icons.payment,
               isFullWidth: true,
               size: ButtonSize.large,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PaymentPage(),
-                  ),
-                );
-              },
+              onPressed: _isCreatingBooking ? null : _handleContinueToPayment,
             ),
           ],
         ),

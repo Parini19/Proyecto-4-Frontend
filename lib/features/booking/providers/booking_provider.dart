@@ -10,12 +10,14 @@ class BookingState {
   final Showtime? selectedShowtime;
   final List<Seat> selectedSeats;
   final List<CartItem> foodCart;
+  final String? bookingId;
 
   const BookingState({
     this.selectedMovie,
     this.selectedShowtime,
     this.selectedSeats = const [],
     this.foodCart = const [],
+    this.bookingId,
   });
 
   BookingState copyWith({
@@ -23,12 +25,14 @@ class BookingState {
     Showtime? selectedShowtime,
     List<Seat>? selectedSeats,
     List<CartItem>? foodCart,
+    String? bookingId,
   }) {
     return BookingState(
       selectedMovie: selectedMovie ?? this.selectedMovie,
       selectedShowtime: selectedShowtime ?? this.selectedShowtime,
       selectedSeats: selectedSeats ?? this.selectedSeats,
       foodCart: foodCart ?? this.foodCart,
+      bookingId: bookingId ?? this.bookingId,
     );
   }
 
@@ -94,6 +98,10 @@ class BookingNotifier extends Notifier<BookingState> {
 
   void clearSelection() {
     state = state.copyWith(selectedSeats: []);
+  }
+
+  void setBookingId(String bookingId) {
+    state = state.copyWith(bookingId: bookingId);
   }
 
   void reset() {

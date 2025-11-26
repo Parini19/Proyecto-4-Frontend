@@ -8,6 +8,7 @@ import '../../core/models/movie_model.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/user_service.dart';
 import '../../core/providers/theme_provider.dart';
+import '../../core/providers/movies_provider.dart';
 import '../../core/widgets/floating_chat_bubble.dart';
 import '../auth/login_page.dart';
 import '../movies/pages/movie_details_page.dart';
@@ -40,11 +41,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.initState();
     _scrollController.addListener(_onScroll);
 
-    // Auto-change hero every 8 seconds (más lento)
+    // Auto-change hero every 8 seconds - will be bounded by actual movie count
     _heroTimer = Timer.periodic(Duration(seconds: 8), (timer) {
       if (mounted) {
         setState(() {
-          _currentHeroIndex = (_currentHeroIndex + 1) % 3;
+          // Will be properly bounded in _buildHeroSectionContent
+          _currentHeroIndex = _currentHeroIndex + 1;
         });
       }
     });
@@ -58,7 +60,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
-  void _searchMovies(String query) {
+  void _searchMovies(String query) async {
     if (query.isEmpty) {
       setState(() {
         _searchResults = [];
@@ -67,19 +69,34 @@ class _HomePageState extends ConsumerState<HomePage> {
       return;
     }
 
-    final allMovies = [
-      ...MoviesData.nowPlaying,
-      ...MoviesData.upcoming,
-      ...MoviesData.popular,
-    ];
-
     setState(() {
       _isSearching = true;
-      _searchResults = allMovies.where((movie) {
-        return movie.title.toLowerCase().contains(query.toLowerCase()) ||
-            movie.genre.toLowerCase().contains(query.toLowerCase());
-      }).toList();
     });
+
+    // Get all movies from the provider
+    try {
+      final allMoviesAsync = ref.read(moviesProvider);
+      await allMoviesAsync.when(
+        data: (movies) {
+          setState(() {
+            _searchResults = movies.where((movie) {
+              return movie.title.toLowerCase().contains(query.toLowerCase()) ||
+                  movie.genre.toLowerCase().contains(query.toLowerCase());
+            }).toList();
+          });
+        },
+        loading: () {},
+        error: (error, stack) {
+          setState(() {
+            _searchResults = [];
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _searchResults = [];
+      });
+    }
   }
 
   void _onScroll() {
@@ -94,6 +111,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Watch the movie providers
+    final nowPlayingMoviesAsync = ref.watch(nowPlayingMoviesProvider);
+    final upcomingMoviesAsync = ref.watch(upcomingMoviesProvider);
+    final popularMoviesAsync = ref.watch(popularMoviesProvider);
 
     return Scaffold(
       body: Stack(
@@ -111,18 +133,22 @@ class _HomePageState extends ConsumerState<HomePage> {
               ] else ...[
                 // Hero Section (Netflix-style)
                 SliverToBoxAdapter(
-                  child: _buildHeroSection(size, isDark),
+                  child: _buildHeroSectionWithProvider(size, isDark, popularMoviesAsync),
                 ),
 
                 // En Cartelera Section
                 SliverToBoxAdapter(
                   child: Container(
                     key: _carteleraKey,
-                    child: _buildSection(
-                      title: 'En Cartelera',
-                      movies: MoviesData.nowPlaying,
-                      isDark: isDark,
-                      size: size,
+                    child: nowPlayingMoviesAsync.when(
+                      data: (movies) => _buildSection(
+                        title: 'En Cartelera',
+                        movies: movies,
+                        isDark: isDark,
+                        size: size,
+                      ),
+                      loading: () => _buildLoadingSection(isDark),
+                      error: (error, stack) => _buildErrorSection('Error al cargar películas en cartelera', isDark),
                     ),
                   ),
                 ),
@@ -131,11 +157,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                 SliverToBoxAdapter(
                   child: Container(
                     key: _proximosKey,
-                    child: _buildSection(
-                      title: 'Próximos Estrenos',
-                      movies: MoviesData.upcoming,
-                      isDark: isDark,
-                      size: size,
+                    child: upcomingMoviesAsync.when(
+                      data: (movies) => _buildSection(
+                        title: 'Próximos Estrenos',
+                        movies: movies,
+                        isDark: isDark,
+                        size: size,
+                      ),
+                      loading: () => _buildLoadingSection(isDark),
+                      error: (error, stack) => _buildErrorSection('Error al cargar próximos estrenos', isDark),
                     ),
                   ),
                 ),
@@ -144,11 +174,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                 SliverToBoxAdapter(
                   child: Container(
                     key: _popularesKey,
-                    child: _buildSection(
-                      title: 'Más Populares',
-                      movies: MoviesData.popular,
-                      isDark: isDark,
-                      size: size,
+                    child: popularMoviesAsync.when(
+                      data: (movies) => _buildSection(
+                        title: 'Más Populares',
+                        movies: movies,
+                        isDark: isDark,
+                        size: size,
+                      ),
+                      loading: () => _buildLoadingSection(isDark),
+                      error: (error, stack) => _buildErrorSection('Error al cargar películas populares', isDark),
                     ),
                   ),
                 ),
@@ -164,9 +198,150 @@ class _HomePageState extends ConsumerState<HomePage> {
           // App Bar (Netflix-style - transparent when at top)
           _buildAppBar(isDark),
 
+          // Mobile Bottom Navigation (Thumb-zone friendly)
+          if (size.width < 768) _buildMobileBottomNav(isDark),
+
           // Chat IA flotante
           const FloatingChatBubble(),
         ],
+      ),
+    );
+  }
+
+  // Mobile Bottom Navigation Bar - Thumb-zone accessible
+  Widget _buildMobileBottomNav(bool isDark) {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: Offset(0, -5),
+            ),
+          ],
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildBottomNavItem(
+                icon: Icons.home_rounded,
+                label: 'Inicio',
+                isActive: true,
+                isDark: isDark,
+                onTap: () {
+                  _scrollController.animateTo(
+                    0,
+                    duration: Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                  );
+                },
+              ),
+              _buildBottomNavItem(
+                icon: Icons.movie_outlined,
+                label: 'Cartelera',
+                isActive: false,
+                isDark: isDark,
+                onTap: () {
+                  _scrollToSection(_carteleraKey);
+                },
+              ),
+              if (_authService.isAuthenticated) ...[
+                _buildBottomNavItem(
+                  icon: Icons.confirmation_number_outlined,
+                  label: 'Boletos',
+                  isActive: false,
+                  isDark: isDark,
+                  onTap: () {
+                    // TODO: Navigate to tickets page
+                  },
+                ),
+                _buildBottomNavItem(
+                  icon: Icons.person_outline,
+                  label: 'Perfil',
+                  isActive: false,
+                  isDark: isDark,
+                  onTap: () {
+                    // Show user menu
+                  },
+                ),
+              ] else ...[
+                _buildBottomNavItem(
+                  icon: Icons.local_offer_outlined,
+                  label: 'Ofertas',
+                  isActive: false,
+                  isDark: isDark,
+                  onTap: () {
+                    // TODO: Navigate to promotions
+                  },
+                ),
+                _buildBottomNavItem(
+                  icon: Icons.login,
+                  label: 'Entrar',
+                  isActive: false,
+                  isDark: isDark,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/login');
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 26,
+                color: isActive
+                    ? AppColors.primary
+                    : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+              ),
+              SizedBox(height: 4),
+              Text(
+                label,
+                style: AppTypography.bodySmall.copyWith(
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive
+                      ? AppColors.primary
+                      : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -237,24 +412,25 @@ class _HomePageState extends ConsumerState<HomePage> {
                 if (!_isSearching && MediaQuery.of(context).size.width > 1024) ...[
                   SizedBox(width: 40),
                   Flexible(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildNavLink('Inicio', true, isDark),
-                        _buildNavLink('Cartelera', false, isDark),
-                        _buildNavLink('Próximos', false, isDark),
-                        if (_authService.isAuthenticated) ...[
-                          _buildNavLink('Mis Boletos', false, isDark),
-                          _buildNavLink('Historial', false, isDark),
-                          _buildNavLink('Food Orders', false, isDark),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildNavLink('Inicio', true, isDark),
+                          _buildNavLink('Cartelera', false, isDark),
+                          _buildNavLink('Próximos', false, isDark),
+                          if (_authService.isAuthenticated) ...[
+                            _buildNavLink('Mis Boletos', false, isDark),
+                            _buildNavLink('Historial', false, isDark),
+                          ],
+                          _buildNavLink('Promociones', false, isDark),
                         ],
-                        _buildNavLink('Promociones', false, isDark),
-                      ],
+                      ),
                     ),
                   ),
+                  SizedBox(width: 16),
                 ],
-
-                Spacer(),
 
                 // Theme Toggle Button
                 _buildThemeToggle(isDark),
@@ -1358,6 +1534,679 @@ class _HomePageState extends ConsumerState<HomePage> {
       onSelected: (mode) {
         themeNotifier.setThemeMode(mode);
       },
+    );
+  }
+
+  // Helper widget for loading state
+  Widget _buildLoadingSection(bool isDark) {
+    return Container(
+      height: 300,
+      padding: EdgeInsets.all(32),
+      child: Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
+  // Helper widget for error state
+  Widget _buildErrorSection(String message, bool isDark) {
+    return Container(
+      height: 300,
+      padding: EdgeInsets.all(32),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: AppColors.error,
+            ),
+            SizedBox(height: 16),
+            Text(
+              message,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Hero section with provider support
+  Widget _buildHeroSectionWithProvider(Size size, bool isDark, AsyncValue<List<MovieModel>> popularMoviesAsync) {
+    return popularMoviesAsync.when(
+      data: (movies) {
+        final heroMovies = movies.take(3).toList();
+        return _buildHeroSectionContent(size, isDark, heroMovies);
+      },
+      loading: () => _buildLoadingSection(isDark),
+      error: (error, stack) => _buildErrorSection('Error al cargar destacados', isDark),
+    );
+  }
+
+  // Existing hero section content (extracted for reuse) - RESPONSIVE VERSION
+  Widget _buildHeroSectionContent(Size size, bool isDark, List<MovieModel> heroMovies) {
+    if (heroMovies.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    // Ensure index is within bounds
+    final safeIndex = heroMovies.length > 0 ? (_currentHeroIndex % heroMovies.length) : 0;
+    final currentHeroMovie = heroMovies[safeIndex];
+
+    // Detect screen size for responsive design
+    final isMobile = size.width < 768;
+    final isTablet = size.width >= 768 && size.width < 1024;
+    final isDesktop = size.width >= 1024;
+
+    // Mobile: Portrait-optimized with overlay (current design works well)
+    if (isMobile) {
+      return _buildMobileHero(size, isDark, currentHeroMovie, heroMovies);
+    }
+
+    // Desktop: Cinematic wide-screen hero with side poster card
+    return _buildDesktopHero(size, isDark, currentHeroMovie, heroMovies);
+  }
+
+  // Mobile Hero: Optimized for portrait screens (vertical layout)
+  Widget _buildMobileHero(Size size, bool isDark, MovieModel movie, List<MovieModel> heroMovies) {
+    // Safe bounds check for current hero index
+    final safeHeroIndex = heroMovies.isNotEmpty ? (_currentHeroIndex % heroMovies.length) : 0;
+
+    return Container(
+      height: size.height * 0.65,
+      child: Stack(
+        children: [
+          // Background Image with Gradient
+          AnimatedSwitcher(
+            duration: Duration(milliseconds: 800),
+            child: Container(
+              key: ValueKey(safeHeroIndex),
+              decoration: BoxDecoration(
+                image: (movie.posterUrl != null && movie.posterUrl!.isNotEmpty)
+                    ? DecorationImage(
+                        image: NetworkImage(movie.posterUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                gradient: (movie.posterUrl == null || movie.posterUrl!.isEmpty)
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: movie.colors.map((colorHex) {
+                          return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
+                        }).toList(),
+                      )
+                    : null,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.3),
+                      Colors.black.withOpacity(0.7),
+                      (isDark ? AppColors.darkBackground : AppColors.lightBackground),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Content
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 32,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Text(
+                  movie.title,
+                  style: AppTypography.displaySmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 32,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(color: Colors.black.withOpacity(0.8), blurRadius: 15),
+                    ],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 12),
+                // Info Row
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 8,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star, color: Colors.amber, size: 18),
+                        SizedBox(width: 4),
+                        Text(
+                          movie.rating,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            shadows: [Shadow(color: Colors.black.withOpacity(0.8), blurRadius: 8)],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      movie.genre.split(',').first.trim(),
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        shadows: [Shadow(color: Colors.black.withOpacity(0.8), blurRadius: 8)],
+                      ),
+                    ),
+                    Text(
+                      movie.duration,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        shadows: [Shadow(color: Colors.black.withOpacity(0.8), blurRadius: 8)],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+                // Button
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MovieDetailsPage(movie: movie),
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.play_arrow, size: 24),
+                  label: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                    child: Text(
+                      'Ver Detalles',
+                      style: AppTypography.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 8,
+                    shadowColor: AppColors.primary.withOpacity(0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Navigation Dots
+          if (heroMovies.isNotEmpty)
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(
+                    heroMovies.length,
+                    (index) => GestureDetector(
+                      onTap: () {
+                        if (heroMovies.isNotEmpty) {
+                          setState(() {
+                            _currentHeroIndex = index % heroMovies.length;
+                          });
+                        }
+                      },
+                      child: AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        margin: EdgeInsets.symmetric(horizontal: 4),
+                        width: safeHeroIndex == index ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: safeHeroIndex == index
+                              ? AppColors.primary
+                              : Colors.white.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Desktop Hero: Cinematic wide-screen with poster card on side
+  Widget _buildDesktopHero(Size size, bool isDark, MovieModel movie, List<MovieModel> heroMovies) {
+    // Safe bounds check for current hero index
+    final safeHeroIndex = heroMovies.isNotEmpty ? (_currentHeroIndex % heroMovies.length) : 0;
+
+    return Container(
+      height: 600,
+      child: Stack(
+        children: [
+          // Background Image (Blurred poster for backdrop effect)
+          AnimatedSwitcher(
+            duration: Duration(milliseconds: 1000),
+            child: Container(
+              key: ValueKey(safeHeroIndex),
+              decoration: BoxDecoration(
+                image: (movie.posterUrl != null && movie.posterUrl!.isNotEmpty)
+                    ? DecorationImage(
+                        image: NetworkImage(movie.posterUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                gradient: (movie.posterUrl == null || movie.posterUrl!.isEmpty)
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: movie.colors.map((colorHex) {
+                          return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
+                        }).toList(),
+                      )
+                    : null,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.black.withOpacity(0.9),
+                      Colors.black.withOpacity(0.8),
+                      Colors.black.withOpacity(0.7),
+                      Colors.transparent,
+                    ],
+                    stops: [0.0, 0.4, 0.6, 1.0],
+                  ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        (isDark ? AppColors.darkBackground : AppColors.lightBackground).withOpacity(0.3),
+                        (isDark ? AppColors.darkBackground : AppColors.lightBackground),
+                      ],
+                      stops: [0.6, 0.85, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Content - Left side with poster and info
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 80, vertical: 60),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Poster Card
+                  AnimatedSwitcher(
+                    duration: Duration(milliseconds: 800),
+                    child: Container(
+                      key: ValueKey(safeHeroIndex),
+                      width: 280,
+                      height: 420,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: (movie.posterUrl == null || movie.posterUrl!.isEmpty)
+                            ? LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: movie.colors.map((colorHex) {
+                                  return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
+                                }).toList(),
+                              )
+                            : null,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5),
+                            blurRadius: 30,
+                            offset: Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: (movie.posterUrl != null && movie.posterUrl!.isNotEmpty)
+                            ? Image.network(
+                                movie.posterUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: movie.colors.map((colorHex) {
+                                          return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
+                                        }).toList(),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.movie_outlined,
+                                        size: 80,
+                                        color: Colors.white.withOpacity(0.5),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                child: Center(
+                                  child: Icon(
+                                    Icons.movie_outlined,
+                                    size: 80,
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(width: 60),
+
+                  // Movie Info
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Classification Badge
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.primary, width: 1.5),
+                          ),
+                          child: Text(
+                            movie.classification,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+
+                        // Title
+                        Text(
+                          movie.title,
+                          style: AppTypography.displayLarge.copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 56,
+                            color: Colors.white,
+                            height: 1.1,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.8),
+                                blurRadius: 20,
+                              ),
+                            ],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 24),
+
+                        // Rating, Genre, Duration
+                        Row(
+                          children: [
+                            // Rating
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.star, color: Colors.amber, size: 20),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    movie.rating,
+                                    style: AppTypography.titleMedium.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: 20),
+                            // Genre
+                            Text(
+                              movie.genre,
+                              style: AppTypography.titleMedium.copyWith(
+                                color: Colors.white.withOpacity(0.9),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(width: 20),
+                            // Duration
+                            Row(
+                              children: [
+                                Icon(Icons.access_time, color: Colors.white.withOpacity(0.7), size: 20),
+                                SizedBox(width: 6),
+                                Text(
+                                  movie.duration,
+                                  style: AppTypography.titleMedium.copyWith(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 24),
+
+                        // Description
+                        if (movie.description != null && movie.description!.isNotEmpty)
+                          Container(
+                            constraints: BoxConstraints(maxWidth: 600),
+                            child: Text(
+                              movie.description!,
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: Colors.white.withOpacity(0.85),
+                                height: 1.6,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        SizedBox(height: 32),
+
+                        // Action Buttons
+                        Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MovieDetailsPage(movie: movie),
+                                  ),
+                                );
+                              },
+                              icon: Icon(Icons.play_arrow, size: 28),
+                              label: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                                child: Text(
+                                  'Ver Detalles',
+                                  style: AppTypography.titleMedium.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 8,
+                                shadowColor: AppColors.primary.withOpacity(0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 16),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                // TODO: Add to watchlist functionality
+                              },
+                              icon: Icon(Icons.add, size: 24),
+                              label: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                                child: Text(
+                                  'Mi Lista',
+                                  style: AppTypography.titleMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: BorderSide(color: Colors.white.withOpacity(0.5), width: 2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Navigation Dots - Bottom Center
+          if (heroMovies.isNotEmpty)
+            Positioned(
+              bottom: 32,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(
+                      heroMovies.length,
+                      (index) => GestureDetector(
+                        onTap: () {
+                          if (heroMovies.isNotEmpty) {
+                            setState(() {
+                              _currentHeroIndex = index % heroMovies.length;
+                            });
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 300),
+                          margin: EdgeInsets.symmetric(horizontal: 4),
+                          width: safeHeroIndex == index ? 32 : 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: safeHeroIndex == index
+                                ? AppColors.primary
+                                : Colors.white.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // Previous/Next Arrows for Desktop
+          if (heroMovies.length > 1)
+            Positioned(
+              left: 32,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: IconButton(
+                  onPressed: () {
+                    if (heroMovies.isNotEmpty) {
+                      setState(() {
+                        _currentHeroIndex = (_currentHeroIndex - 1 + heroMovies.length) % heroMovies.length;
+                      });
+                    }
+                  },
+                  icon: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 32),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withOpacity(0.5),
+                    padding: EdgeInsets.all(16),
+                  ),
+                ),
+              ),
+            ),
+          if (heroMovies.length > 1)
+            Positioned(
+              right: 32,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: IconButton(
+                  onPressed: () {
+                    if (heroMovies.isNotEmpty) {
+                      setState(() {
+                        _currentHeroIndex = (_currentHeroIndex + 1) % heroMovies.length;
+                      });
+                    }
+                  },
+                  icon: Icon(Icons.arrow_forward_ios, color: Colors.white, size: 32),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withOpacity(0.5),
+                    padding: EdgeInsets.all(16),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

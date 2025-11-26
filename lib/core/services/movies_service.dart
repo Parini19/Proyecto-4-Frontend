@@ -63,25 +63,28 @@ class MoviesService {
     );
   }
 
-  Future<bool> createMovie(MovieModel movie) async {
+  Future<bool> createMovie(MovieModel movie, {String? posterBase64}) async {
     try {
       // Generate a unique ID for the new movie
       final movieId = _generateMovieId();
-      
+
       final response = await _apiService.post('/movies/add-movie', body: {
-        'id': movieId,
-        'title': movie.title,
-        'description': movie.description,
-        'durationMinutes': int.tryParse(movie.duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
-        'genre': movie.genre,
-        'director': movie.director ?? '',
-        'year': int.tryParse(movie.year ?? '0') ?? 0,
-        'posterUrl': movie.posterUrl ?? '',
-        'trailerUrl': movie.trailer,
-        'rating': double.tryParse(movie.rating) ?? 0.0,
-        'classification': movie.classification,
-        'isNew': false,
-        'showtimes': movie.showtimes ?? [],
+        'movie': {
+          'id': movieId,
+          'title': movie.title,
+          'description': movie.description,
+          'durationMinutes': int.tryParse(movie.duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+          'genre': movie.genre,
+          'director': movie.director ?? '',
+          'year': int.tryParse(movie.year ?? '0') ?? 0,
+          'posterUrl': movie.posterUrl ?? '',
+          'trailerUrl': movie.trailer,
+          'rating': double.tryParse(movie.rating) ?? 0.0,
+          'classification': movie.classification,
+          'isNew': false,
+          'showtimes': movie.showtimes ?? [],
+        },
+        'posterBase64': posterBase64,
       });
 
       return response.success;
@@ -90,22 +93,25 @@ class MoviesService {
     }
   }
 
-  Future<bool> updateMovie(MovieModel movie) async {
+  Future<bool> updateMovie(MovieModel movie, {String? posterBase64}) async {
     try {
       final response = await _apiService.put('/movies/edit-movie/${movie.id}', body: {
-        'id': movie.id, // Include the ID in the request body as required by backend validation
-        'title': movie.title,
-        'description': movie.description,
-        'durationMinutes': int.tryParse(movie.duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
-        'genre': movie.genre,
-        'director': movie.director ?? '',
-        'year': int.tryParse(movie.year ?? '0') ?? 0,
-        'posterUrl': movie.posterUrl ?? '',
-        'trailerUrl': movie.trailer,
-        'rating': double.tryParse(movie.rating) ?? 0.0,
-        'classification': movie.classification,
-        'isNew': false,
-        'showtimes': movie.showtimes ?? [],
+        'movie': {
+          'id': movie.id,
+          'title': movie.title,
+          'description': movie.description,
+          'durationMinutes': int.tryParse(movie.duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+          'genre': movie.genre,
+          'director': movie.director ?? '',
+          'year': int.tryParse(movie.year ?? '0') ?? 0,
+          'posterUrl': movie.posterUrl ?? '',
+          'trailerUrl': movie.trailer,
+          'rating': double.tryParse(movie.rating) ?? 0.0,
+          'classification': movie.classification,
+          'isNew': false,
+          'showtimes': movie.showtimes ?? [],
+        },
+        'posterBase64': posterBase64,
       });
 
       return response.success;

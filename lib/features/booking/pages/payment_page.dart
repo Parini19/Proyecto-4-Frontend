@@ -6,6 +6,8 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
 import '../../../core/widgets/cinema_text_field.dart';
+import '../../../core/models/payment.dart';
+import '../../../core/providers/service_providers.dart';
 import '../providers/booking_provider.dart';
 import 'confirmation_page.dart';
 
@@ -885,6 +887,19 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
   }
 
   Future<void> _processPayment() async {
+    final bookingState = ref.read(bookingProvider);
+
+    // Validate booking ID exists
+    if (bookingState.bookingId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No se encontró la reserva'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     // Only validate form for credit card payments
     if (_selectedPaymentMethod == 0) {
       if (!_formKey.currentState!.validate()) {
@@ -896,26 +911,77 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
       _isProcessing = true;
     });
 
-    // Simulate payment processing
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final paymentService = ref.read(paymentServiceProvider);
 
-    if (!mounted) return;
+      // Parse expiry date
+      final expiryParts = _expiryController.text.split('/');
+      final expiryMonth = expiryParts.isNotEmpty ? expiryParts[0].trim() : '01';
+      final expiryYear = expiryParts.length > 1 ? expiryParts[1].trim() : '25';
 
-    setState(() {
-      _isProcessing = false;
-    });
+      // Create payment request
+      final request = PaymentRequest(
+        bookingId: bookingState.bookingId!,
+        amount: bookingState.totalPrice,
+        cardNumber: _cardNumberController.text.replaceAll(' ', ''),
+        cardHolderName: _cardHolderController.text,
+        expiryMonth: expiryMonth,
+        expiryYear: expiryYear,
+        cvv: _cvvController.text,
+      );
 
-    // Navigate to confirmation
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ConfirmationPage(
-          email: _emailController.text.isEmpty
-              ? 'usuario@ejemplo.com'
-              : _emailController.text,
-        ),
-      ),
-    );
+      // Process payment
+      final result = await paymentService.processPayment(request);
+
+      if (!mounted) return;
+
+      if (result.success) {
+        // Payment successful - navigate to confirmation
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ConfirmationPage(
+              bookingId: bookingState.bookingId!,
+              invoiceNumber: result.invoiceNumber ?? '',
+              ticketsGenerated: result.ticketsGenerated ?? 0,
+            ),
+          ),
+        );
+      } else {
+        // Payment failed
+        setState(() {
+          _isProcessing = false;
+        });
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Pago Rechazado'),
+            content: Text(result.message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Intentar de nuevo'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al procesar el pago: $e'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 }
 
