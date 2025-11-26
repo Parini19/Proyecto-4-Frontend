@@ -3,9 +3,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/services/user_service.dart';
+import '../../../core/widgets/floating_chat_bubble.dart';
 import 'movies_management_page.dart';
 import 'screenings_management_page.dart';
+import 'theater_rooms_management_page.dart';
 import 'users_management_page.dart';
+import 'food_combos_management_page.dart';
+import 'food_orders_management_page.dart';
 import '../../home/home_page.dart';
 import '../../auth/login_page.dart';
 
@@ -24,7 +28,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _DashboardOverview(),
     MoviesManagementPage(),
     ScreeningsManagementPage(),
-    UsersManagementPage(),
+    TheaterRoomsManagementPage(),
+    FoodCombosManagementPage(),
+    FoodOrdersManagementPage(),
+    UsersManagementPage()
   ];
 
   @override
@@ -32,15 +39,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          // Side Navigation
-          _buildSideNav(isDark),
+          Row(
+            children: [
+              // Side Navigation
+              _buildSideNav(isDark),
 
-          // Main Content
-          Expanded(
-            child: _pages[_selectedIndex],
+              // Main Content
+              Expanded(
+                child: _pages[_selectedIndex],
+              ),
+            ],
           ),
+
+          // Chat IA flotante
+          const FloatingChatBubble(),
         ],
       ),
     );
@@ -129,9 +143,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   isDark: isDark,
                 ),
                 _buildNavItem(
+                  icon: Icons.meeting_room,
+                  label: 'Salas de Cine',
+                  index: 3,
+                  isDark: isDark,
+                ),
+                _buildNavItem(
+                  icon: Icons.fastfood,
+                  label: 'Food Combos',
+                  index: 4,
+                  isDark: isDark,
+                ),
+                _buildNavItem(
+                  icon: Icons.receipt_long,
+                  label: 'Órdenes de Comida',
+                  index: 5,
+                  isDark: isDark,
+                ),
+                _buildNavItem(
                   icon: Icons.people,
                   label: 'Usuarios',
-                  index: 3,
+                  index: 6,
                   isDark: isDark,
                 ),
 
@@ -257,7 +289,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
-// Dashboard Overview Widget
 class _DashboardOverview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -294,7 +325,6 @@ class _DashboardOverview extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Stats Cards Row
             Row(
               children: [
                 Expanded(
@@ -357,7 +387,6 @@ class _DashboardOverview extends StatelessWidget {
 
             SizedBox(height: AppSpacing.xl),
 
-            // Recent Activity Section
             Text(
               'Actividad Reciente',
               style: AppTypography.titleLarge.copyWith(
@@ -394,8 +423,6 @@ class _DashboardOverview extends StatelessWidget {
             ),
 
             SizedBox(height: AppSpacing.xl),
-
-            // Quick Stats Row
             Row(
               children: [
                 Expanded(

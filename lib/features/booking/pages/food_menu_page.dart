@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/food_item.dart';
+import '../../../core/models/food_combo.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -18,13 +19,45 @@ class FoodMenuPage extends ConsumerStatefulWidget {
 
 class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
   FoodCategory _selectedCategory = FoodCategory.combo;
+  List<FoodItem> _allFoodItems = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFoodItems();
+  }
+
+  Future<void> _loadFoodItems() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Use mock data for all categories
+      final allItems = mockFoodItems
+          .where((item) => item.category == _selectedCategory)
+          .toList();
+
+      setState(() {
+        _allFoodItems = allItems;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error cargando alimentos: $e';
+        _isLoading = false;
+        // Fallback to empty list
+        _allFoodItems = [];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final bookingState = ref.watch(bookingProvider);
-    final filteredItems = mockFoodItems
-        .where((item) => item.category == _selectedCategory)
-        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -94,6 +127,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
                       setState(() {
                         _selectedCategory = category;
                       });
+                      _loadFoodItems(); // Reload items when category changes
                     },
                     backgroundColor: AppColors.surfaceVariant,
                     selectedColor: AppColors.primary,
@@ -113,34 +147,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
 
           // Food items grid
           Expanded(
-            child: GridView.builder(
-              padding: AppSpacing.pagePadding,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: AppSpacing.md,
-                mainAxisSpacing: AppSpacing.md,
-              ),
-              itemCount: filteredItems.length,
-              itemBuilder: (context, index) {
-                return FoodItemCard(
-                  foodItem: filteredItems[index],
-                  quantity: ref
-                      .read(bookingProvider.notifier)
-                      .getFoodItemQuantity(filteredItems[index].id),
-                  onAdd: () {
-                    ref
-                        .read(bookingProvider.notifier)
-                        .addFoodItem(filteredItems[index]);
-                  },
-                  onRemove: () {
-                    ref
-                        .read(bookingProvider.notifier)
-                        .removeFoodItem(filteredItems[index].id);
-                  },
-                );
-              },
-            ),
+            child: _buildFoodItemsContent(),
           ),
 
           // Bottom bar
@@ -148,6 +155,95 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
             _buildBottomBar(context, bookingState),
         ],
       ),
+    );
+  }
+
+  Widget _buildFoodItemsContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _error!,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.error,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadFoodItems,
+              child: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_allFoodItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.restaurant_menu,
+              size: 64,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No hay productos disponibles\nen esta categoría',
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: AppSpacing.pagePadding,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: AppSpacing.md,
+        mainAxisSpacing: AppSpacing.md,
+      ),
+      itemCount: _allFoodItems.length,
+      itemBuilder: (context, index) {
+        final foodItem = _allFoodItems[index];
+        return FoodItemCard(
+          foodItem: foodItem,
+          quantity: ref
+              .read(bookingProvider.notifier)
+              .getFoodItemQuantity(foodItem.id),
+          onAdd: () {
+            ref
+                .read(bookingProvider.notifier)
+                .addFoodItem(foodItem);
+          },
+          onRemove: () {
+            ref
+                .read(bookingProvider.notifier)
+                .removeFoodItem(foodItem.id);
+          },
+        );
+      },
     );
   }
 

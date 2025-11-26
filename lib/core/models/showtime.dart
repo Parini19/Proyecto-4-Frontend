@@ -49,7 +49,7 @@ class Showtime {
       id: json['id'] as String,
       movieId: json['movieId'] as String,
       cinemaHall: json['cinemaHall'] as String,
-      dateTime: DateTime.parse(json['dateTime'] as String),
+      dateTime: DateTime.parse(json['dateTime'] as String).toUtc(),
       seats: (json['seats'] as List<dynamic>)
           .map((e) => Seat.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -63,7 +63,7 @@ class Showtime {
       'id': id,
       'movieId': movieId,
       'cinemaHall': cinemaHall,
-      'dateTime': dateTime.toIso8601String(),
+      'dateTime': dateTime.toUtc().toIso8601String(),
       'seats': seats.map((e) => e.toJson()).toList(),
       'totalSeats': totalSeats,
       'availableSeats': availableSeats,

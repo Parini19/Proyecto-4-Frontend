@@ -1,15 +1,15 @@
-import 'package:cinema_frontend/core/services/api_service.dart';
-import 'package:cinema_frontend/core/models/movie_model.dart';
+import 'dart:math';
+import '../models/movie_model.dart';
+import 'api_service.dart';
 
 class MoviesService {
   final ApiService _apiService = ApiService();
 
   Future<List<MovieModel>> getAllMovies() async {
     try {
-      final response = await _apiService.get('/movies');
+      final response = await _apiService.get('/movies/get-all-movies');
 
       if (!response.success) {
-        print('Error getting movies: ${response.message}');
         return [];
       }
 
@@ -17,94 +17,116 @@ class MoviesService {
         return [];
       }
 
-      // La respuesta es una lista de películas
-      final List<dynamic> moviesJson = response.data as List<dynamic>;
+      // El backend devuelve { success: true, movies: [...] }
+      final List<dynamic> moviesJson = response.data['movies'] as List<dynamic>;
 
       return moviesJson.map((json) => _mapToMovieModel(json)).toList();
     } catch (e) {
-      print('Exception in getAllMovies: $e');
       return [];
     }
   }
 
   Future<MovieModel?> getMovieById(String id) async {
     try {
-      final response = await _apiService.get('/movies/$id');
+      final response = await _apiService.get('/movies/get-movie/$id');
 
       if (!response.success || response.data == null) {
         return null;
       }
 
-      return _mapToMovieModel(response.data);
+      // El backend devuelve { success: true, movie: {...} }
+      return _mapToMovieModel(response.data['movie']);
     } catch (e) {
-      print('Exception in getMovieById: $e');
       return null;
     }
   }
 
   MovieModel _mapToMovieModel(dynamic json) {
-    // Mapeo del JSON del backend a nuestro modelo frontend
+    // Mapeo del JSON del backend (Firestore) a nuestro modelo frontend
     return MovieModel(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      rating: '0.0', // El backend no tiene rating, usar valor por defecto
+      rating: json['rating']?.toString() ?? '0.0',
       duration: '${json['durationMinutes'] ?? 0} min',
       genre: json['genre']?.toString() ?? '',
-      classification: 'NR', // El backend no tiene classification, usar valor por defecto
-      colors: ['#E6A23C', '#F56C6C', '#1A1A1A'], // Colores por defecto
+      classification: json['classification']?.toString() ?? 'NR',
+      colors: ['#E6A23C', '#F56C6C', '#1A1A1A'], // Colores por defecto para UI
       director: json['director']?.toString(),
       cast: null, // El backend no tiene cast actualmente
       year: json['year']?.toString(),
-      showtimes: null, // Los showtimes vendrán de Screenings
-      trailer: null,
+      showtimes: json['showtimes'] != null 
+          ? List<String>.from(json['showtimes']) 
+          : null,
+      trailer: json['trailerUrl']?.toString(),
       posterUrl: json['posterUrl']?.toString() ?? 'https://via.placeholder.com/300x450?text=No+Image',
     );
   }
 
   Future<bool> createMovie(MovieModel movie) async {
     try {
-      final response = await _apiService.post('/movies', body: {
+      // Generate a unique ID for the new movie
+      final movieId = _generateMovieId();
+      
+      final response = await _apiService.post('/movies/add-movie', body: {
+        'id': movieId,
         'title': movie.title,
         'description': movie.description,
         'durationMinutes': int.tryParse(movie.duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
         'genre': movie.genre,
         'director': movie.director ?? '',
         'year': int.tryParse(movie.year ?? '0') ?? 0,
+        'posterUrl': movie.posterUrl ?? '',
+        'trailerUrl': movie.trailer,
+        'rating': double.tryParse(movie.rating) ?? 0.0,
+        'classification': movie.classification,
+        'isNew': false,
+        'showtimes': movie.showtimes ?? [],
       });
 
       return response.success;
     } catch (e) {
-      print('Exception in createMovie: $e');
       return false;
     }
   }
 
   Future<bool> updateMovie(MovieModel movie) async {
     try {
-      final response = await _apiService.put('/movies/${movie.id}', body: {
+      final response = await _apiService.put('/movies/edit-movie/${movie.id}', body: {
+        'id': movie.id, // Include the ID in the request body as required by backend validation
         'title': movie.title,
         'description': movie.description,
         'durationMinutes': int.tryParse(movie.duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
         'genre': movie.genre,
         'director': movie.director ?? '',
         'year': int.tryParse(movie.year ?? '0') ?? 0,
+        'posterUrl': movie.posterUrl ?? '',
+        'trailerUrl': movie.trailer,
+        'rating': double.tryParse(movie.rating) ?? 0.0,
+        'classification': movie.classification,
+        'isNew': false,
+        'showtimes': movie.showtimes ?? [],
       });
 
       return response.success;
     } catch (e) {
-      print('Exception in updateMovie: $e');
       return false;
     }
   }
 
   Future<bool> deleteMovie(String id) async {
     try {
-      final response = await _apiService.delete('/movies/$id');
+      final response = await _apiService.delete('/movies/delete-movie/$id');
       return response.success;
     } catch (e) {
-      print('Exception in deleteMovie: $e');
       return false;
     }
+  }
+
+  /// Generate a unique ID for new movies
+  String _generateMovieId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final random = Random().nextInt(999);
+    return 'MOV_${timestamp}_$random';
   }
 }
