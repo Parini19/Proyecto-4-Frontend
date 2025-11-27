@@ -3,12 +3,15 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
+import '../../../core/widgets/searchable_dropdown.dart';
 import '../../../core/models/screening.dart';
 import '../../../core/models/movie_model.dart';
 import '../../../core/models/theater_room.dart';
+import '../../../core/models/cinema_location.dart';
 import '../../../core/services/screening_service.dart';
 import '../../../core/services/movies_service.dart';
 import '../../../core/services/theater_room_service.dart';
+import '../../../core/services/cinema_location_service.dart';
 
 class ScreeningsManagementPage extends StatefulWidget {
   const ScreeningsManagementPage({super.key});
@@ -22,12 +25,15 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
   List<Screening> _filteredScreenings = [];
   List<MovieModel> _movies = [];
   List<TheaterRoom> _theaterRooms = [];
+  List<CinemaLocation> _cinemas = [];
   bool _isLoading = false;
   String _searchQuery = '';
+  String? _selectedCinemaId; // Filter by cinema
   String? _error;
   final ScreeningService _screeningService = ScreeningService();
   final MoviesService _moviesService = MoviesService();
   final TheaterRoomService _theaterRoomService = TheaterRoomService();
+  final CinemaLocationService _cinemaService = CinemaLocationService();
 
   @override
   void initState() {
@@ -46,13 +52,15 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
         _screeningService.getAllScreenings(),
         _moviesService.getAllMovies(),
         _theaterRoomService.getAllTheaterRooms(),
+        _cinemaService.getActiveCinemas(),
       ]);
 
       setState(() {
         _screenings = futures[0] as List<Screening>;
         _movies = futures[1] as List<MovieModel>;
         _theaterRooms = futures[2] as List<TheaterRoom>;
-        _filteredScreenings = _screenings;
+        _cinemas = futures[3] as List<CinemaLocation>;
+        _applyFilters();
         _isLoading = false;
       });
     } catch (e) {
@@ -66,19 +74,34 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
   void _filterScreenings(String query) {
     setState(() {
       _searchQuery = query;
-      if (query.isEmpty) {
-        _filteredScreenings = _screenings;
-      } else {
-        _filteredScreenings = _screenings.where((screening) {
-          final movie = _getMovieById(screening.movieId);
-          final theaterRoom = _getTheaterRoomById(screening.theaterRoomId);
-          return movie?.title.toLowerCase().contains(query.toLowerCase()) == true ||
-                 theaterRoom?.name.toLowerCase().contains(query.toLowerCase()) == true ||
-                 screening.formattedDate.contains(query) ||
-                 screening.formattedStartTime.contains(query);
-        }).toList();
-      }
+      _applyFilters();
     });
+  }
+
+  void _filterByCinema(String? cinemaId) {
+    setState(() {
+      _selectedCinemaId = cinemaId;
+      _applyFilters();
+    });
+  }
+
+  void _applyFilters() {
+    _filteredScreenings = _screenings.where((screening) {
+      // Search filter
+      final matchesSearch = _searchQuery.isEmpty || () {
+        final movie = _getMovieById(screening.movieId);
+        final theaterRoom = _getTheaterRoomById(screening.theaterRoomId);
+        return movie?.title.toLowerCase().contains(_searchQuery.toLowerCase()) == true ||
+               theaterRoom?.name.toLowerCase().contains(_searchQuery.toLowerCase()) == true ||
+               screening.formattedDate.contains(_searchQuery) ||
+               screening.formattedStartTime.contains(_searchQuery);
+      }();
+
+      // Cinema filter
+      final matchesCinema = _selectedCinemaId == null || screening.cinemaId == _selectedCinemaId;
+
+      return matchesSearch && matchesCinema;
+    }).toList();
   }
 
   MovieModel? _getMovieById(String movieId) {
@@ -92,6 +115,14 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
   TheaterRoom? _getTheaterRoomById(String theaterRoomId) {
     try {
       return _theaterRooms.firstWhere((room) => room.id == theaterRoomId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  CinemaLocation? _getCinemaById(String cinemaId) {
+    try {
+      return _cinemas.firstWhere((cinema) => cinema.id == cinemaId);
     } catch (e) {
       return null;
     }
@@ -189,33 +220,71 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
       ),
       body: Column(
         children: [
-          // Search and Add Bar
+          // Search and Filter Bar
           Container(
             padding: AppSpacing.pagePadding,
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Buscar funciones...',
-                      prefixIcon: Icon(Icons.search),
-                      filled: true,
-                      fillColor: isDark
-                          ? AppColors.darkSurfaceVariant
-                          : AppColors.lightSurfaceVariant,
-                      border: OutlineInputBorder(
-                        borderRadius: AppSpacing.borderRadiusMD,
-                        borderSide: BorderSide.none,
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Buscar funciones...',
+                          prefixIcon: Icon(Icons.search),
+                          filled: true,
+                          fillColor: isDark
+                              ? AppColors.darkSurfaceVariant
+                              : AppColors.lightSurfaceVariant,
+                          border: OutlineInputBorder(
+                            borderRadius: AppSpacing.borderRadiusMD,
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: _filterScreenings,
                       ),
                     ),
-                    onChanged: _filterScreenings,
-                  ),
+                    SizedBox(width: AppSpacing.md),
+                    CinemaButton(
+                      text: 'Nueva Función',
+                      icon: Icons.add,
+                      onPressed: () => _showAddEditDialog(context, isDark),
+                    ),
+                  ],
                 ),
-                SizedBox(width: AppSpacing.md),
-                CinemaButton(
-                  text: 'Nueva Función',
-                  icon: Icons.add,
-                  onPressed: () => _showAddEditDialog(context, isDark),
+                SizedBox(height: AppSpacing.sm),
+                // Cinema Filter
+                Row(
+                  children: [
+                    Icon(Icons.business, size: 16, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                    SizedBox(width: AppSpacing.xs),
+                    Text(
+                      'Filtrar por cine:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ChoiceChip(
+                            label: Text('Todos'),
+                            selected: _selectedCinemaId == null,
+                            onSelected: (_) => _filterByCinema(null),
+                          ),
+                          ..._cinemas.map((cinema) => ChoiceChip(
+                                label: Text(cinema.name),
+                                selected: _selectedCinemaId == cinema.id,
+                                onSelected: (_) => _filterByCinema(cinema.id),
+                              )),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -262,13 +331,13 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.event, size: 64, color: AppColors.textSecondary),
+            Icon(Icons.event, size: 64, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
             SizedBox(height: 16),
             Text(
-              _searchQuery.isEmpty 
+              _searchQuery.isEmpty
                   ? 'No hay funciones programadas'
                   : 'No se encontraron funciones\nque coincidan con "$_searchQuery"',
-              style: AppTypography.bodyLarge.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.bodyLarge.copyWith(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
               textAlign: TextAlign.center,
             ),
             if (_searchQuery.isNotEmpty) ...[
@@ -296,6 +365,7 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
   Widget _buildScreeningCard(Screening screening, bool isDark) {
     final movie = _getMovieById(screening.movieId);
     final theaterRoom = _getTheaterRoomById(screening.theaterRoomId);
+    final cinema = _getCinemaById(screening.cinemaId);
 
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.md),
@@ -322,10 +392,24 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                         ),
                       ),
                       SizedBox(height: AppSpacing.xs),
+                      Row(
+                        children: [
+                          Icon(Icons.business, size: 14, color: AppColors.secondary),
+                          SizedBox(width: 4),
+                          Text(
+                            cinema?.name ?? 'Cine no encontrado',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 2),
                       Text(
                         theaterRoom?.name ?? 'Sala no encontrada',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         ),
                       ),
                     ],
@@ -365,30 +449,44 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
             SizedBox(height: AppSpacing.md),
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 16, color: AppColors.textTertiary),
+                Icon(Icons.calendar_today, size: 16, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
                 SizedBox(width: AppSpacing.xs),
                 Text(
                   screening.formattedDate,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                   ),
                 ),
                 SizedBox(width: AppSpacing.md),
-                Icon(Icons.access_time, size: 16, color: AppColors.textTertiary),
+                Icon(Icons.access_time, size: 16, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
                 SizedBox(width: AppSpacing.xs),
                 Text(
                   '${screening.formattedStartTime} - ${screening.formattedEndTime}',
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                   ),
                 ),
                 SizedBox(width: AppSpacing.md),
-                Icon(Icons.timer, size: 16, color: AppColors.textTertiary),
+                Icon(Icons.timer, size: 16, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
                 SizedBox(width: AppSpacing.xs),
                 Text(
                   '${screening.durationMinutes} min',
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                Icon(Icons.monetization_on, size: 16, color: AppColors.success),
+                SizedBox(width: AppSpacing.xs),
+                Text(
+                  '₡${screening.price.toStringAsFixed(0)}',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -425,6 +523,7 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
     String? selectedTheaterRoomId = screening?.theaterRoomId;
     DateTime selectedStartTime = screening?.startTime ?? DateTime.now().toUtc();
     DateTime selectedEndTime = screening?.endTime ?? DateTime.now().toUtc().add(Duration(hours: 2));
+    TextEditingController priceController = TextEditingController(text: screening?.price.toString() ?? '4500');
 
     showDialog(
       context: context,
@@ -443,68 +542,34 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Movie Selection
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: DropdownButtonFormField<String>(
-                      value: selectedMovieId,
-                      decoration: InputDecoration(
-                        labelText: 'Película *',
-                        prefixIcon: Icon(Icons.movie, color: AppColors.primary),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                          vertical: AppSpacing.md,
-                        ),
-                      ),
-                      items: _movies.map((movie) => DropdownMenuItem(
-                        value: movie.id,
-                        child: Text(
-                          movie.title,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      )).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedMovieId = value;
-                        });
-                      },
-                    ),
+                  SearchableDropdown<MovieModel>(
+                    label: 'Película *',
+                    hint: 'Selecciona una película',
+                    prefixIcon: Icons.movie,
+                    value: _movies.where((m) => m.id == selectedMovieId).firstOrNull,
+                    items: _movies,
+                    itemLabel: (movie) => movie.title,
+                    onChanged: (movie) {
+                      setState(() {
+                        selectedMovieId = movie?.id;
+                      });
+                    },
                   ),
                   SizedBox(height: AppSpacing.md),
 
                   // Theater Room Selection
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: DropdownButtonFormField<String>(
-                      value: selectedTheaterRoomId,
-                      decoration: InputDecoration(
-                        labelText: 'Sala de Cine *',
-                        prefixIcon: Icon(Icons.meeting_room, color: AppColors.primary),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                          vertical: AppSpacing.md,
-                        ),
-                      ),
-                      items: _theaterRooms.map((room) => DropdownMenuItem(
-                        value: room.id,
-                        child: Text(
-                          '${room.name} (${room.capacity} asientos)',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      )).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedTheaterRoomId = value;
-                        });
-                      },
-                    ),
+                  SearchableDropdown<TheaterRoom>(
+                    label: 'Sala de Cine *',
+                    hint: 'Selecciona una sala',
+                    prefixIcon: Icons.meeting_room,
+                    value: _theaterRooms.where((r) => r.id == selectedTheaterRoomId).firstOrNull,
+                    items: _theaterRooms,
+                    itemLabel: (room) => '${room.name} (${room.capacity} asientos)',
+                    onChanged: (room) {
+                      setState(() {
+                        selectedTheaterRoomId = room?.id;
+                      });
+                    },
                   ),
                   
                   // Mensaje de ayuda cuando no hay salas disponibles
@@ -549,7 +614,27 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                         ],
                       ),
                     ),
-                    
+
+                  SizedBox(height: AppSpacing.md),
+
+                  // Price Field
+                  TextField(
+                    controller: priceController,
+                    decoration: InputDecoration(
+                      labelText: 'Precio (₡) *',
+                      hintText: 'Ej: 4500',
+                      prefixIcon: Icon(Icons.attach_money),
+                      filled: true,
+                      fillColor: isDark
+                          ? AppColors.darkSurfaceVariant
+                          : AppColors.lightSurfaceVariant,
+                      border: OutlineInputBorder(
+                        borderRadius: AppSpacing.borderRadiusMD,
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
                   SizedBox(height: AppSpacing.md),
 
                   // Start Date & Time
@@ -593,7 +678,7 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                                       Text(
                                         'Fecha',
                                         style: AppTypography.labelSmall.copyWith(
-                                          color: AppColors.textSecondary,
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                                         ),
                                       ),
                                       Text(
@@ -647,7 +732,7 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                                       Text(
                                         'Hora Inicio',
                                         style: AppTypography.labelSmall.copyWith(
-                                          color: AppColors.textSecondary,
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                                         ),
                                       ),
                                       Text(
@@ -702,7 +787,7 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                                 Text(
                                   'Hora Fin',
                                   style: AppTypography.labelSmall.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                                   ),
                                 ),
                                 Text(
@@ -715,7 +800,7 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                           Text(
                             'Duración: ${selectedEndTime.difference(selectedStartTime).inMinutes} min',
                             style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.textTertiary,
+                              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                             ),
                           ),
                         ],
@@ -765,6 +850,33 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                   return;
                 }
 
+                // Validate price
+                final priceText = priceController.text.trim();
+                if (priceText.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('El precio es requerido'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  return;
+                }
+
+                final price = double.tryParse(priceText);
+                if (price == null || price <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('El precio debe ser un número válido mayor a 0'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  return;
+                }
+
+                // Get cinema ID from the selected theater room
+                final selectedRoom = _theaterRooms.firstWhere((r) => r.id == selectedTheaterRoomId);
+                final cinemaId = selectedRoom.cinemaId;
+
                 Navigator.pop(context); // Close dialog first
 
                 // Show loading
@@ -790,9 +902,11 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                   final newScreening = Screening(
                     id: screening?.id ?? '', // Empty for new screenings, backend will generate
                     movieId: selectedMovieId!,
+                    cinemaId: cinemaId,
                     theaterRoomId: selectedTheaterRoomId!,
                     startTime: selectedStartTime.toUtc(),
                     endTime: selectedEndTime.toUtc(),
+                    price: price,
                   );
 
                   bool success;

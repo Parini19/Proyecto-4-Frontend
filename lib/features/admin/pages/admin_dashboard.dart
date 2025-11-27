@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/services/user_service.dart';
+import '../../../core/services/booking_service.dart';
+import '../../../core/providers/service_providers.dart';
+import '../../../core/providers/movies_provider.dart';
+import '../../../core/models/food_item.dart';
 import '../../../core/widgets/floating_chat_bubble.dart';
 import 'movies_management_page.dart';
 import 'screenings_management_page.dart';
@@ -10,6 +15,10 @@ import 'theater_rooms_management_page.dart';
 import 'users_management_page.dart';
 import 'food_combos_management_page.dart';
 import 'food_orders_management_page.dart';
+import 'audit_log_management_page.dart';
+import 'reports_page.dart';
+import 'settings_page.dart';
+import '../presentation/pages/cinema_management_page.dart';
 import '../../home/home_page.dart';
 import '../../auth/login_page.dart';
 
@@ -26,12 +35,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   final List<Widget> _pages = [
     _DashboardOverview(),
+    CinemaManagementPage(),
     MoviesManagementPage(),
     ScreeningsManagementPage(),
     TheaterRoomsManagementPage(),
     FoodCombosManagementPage(),
     FoodOrdersManagementPage(),
-    UsersManagementPage()
+    UsersManagementPage(),
+    AuditLogManagementPage()
   ];
 
   @override
@@ -104,11 +115,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
-                        'Cinema Management',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
+                          return Text(
+                            'Cinema Management',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -131,39 +147,51 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   isDark: isDark,
                 ),
                 _buildNavItem(
+                  icon: Icons.business,
+                  label: 'Cines / Sedes',
+                  index: 1,
+                  isDark: isDark,
+                ),
+                _buildNavItem(
                   icon: Icons.movie,
                   label: 'Películas',
-                  index: 1,
+                  index: 2,
                   isDark: isDark,
                 ),
                 _buildNavItem(
                   icon: Icons.event,
                   label: 'Funciones',
-                  index: 2,
+                  index: 3,
                   isDark: isDark,
                 ),
                 _buildNavItem(
                   icon: Icons.meeting_room,
                   label: 'Salas de Cine',
-                  index: 3,
+                  index: 4,
                   isDark: isDark,
                 ),
                 _buildNavItem(
                   icon: Icons.fastfood,
                   label: 'Food Combos',
-                  index: 4,
+                  index: 5,
                   isDark: isDark,
                 ),
                 _buildNavItem(
                   icon: Icons.receipt_long,
                   label: 'Órdenes de Comida',
-                  index: 5,
+                  index: 6,
                   isDark: isDark,
                 ),
                 _buildNavItem(
                   icon: Icons.people,
                   label: 'Usuarios',
-                  index: 6,
+                  index: 7,
+                  isDark: isDark,
+                ),
+                _buildNavItem(
+                  icon: Icons.history,
+                  label: 'Bitácora',
+                  index: 8,
                   isDark: isDark,
                 ),
 
@@ -191,18 +219,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     );
                   },
                   isDark: isDark,
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                  ),
                 ),
                 _buildQuickAction(
                   icon: Icons.analytics,
                   label: 'Reportes',
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ReportsPage()),
+                    );
+                  },
                   isDark: isDark,
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                  ),
                 ),
                 _buildQuickAction(
                   icon: Icons.settings,
                   label: 'Configuración',
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SettingsPage()),
+                    );
+                  },
                   isDark: isDark,
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
+                  ),
                 ),
               ],
             ),
@@ -274,25 +321,67 @@ class _AdminDashboardState extends State<AdminDashboard> {
     required String label,
     required VoidCallback onTap,
     required bool isDark,
+    required LinearGradient gradient,
   }) {
-    return ListTile(
-      dense: true,
-      leading: Icon(icon, color: AppColors.textSecondary, size: 20),
-      title: Text(
-        label,
-        style: AppTypography.bodySmall.copyWith(
-          color: AppColors.textSecondary,
+    return Container(
+      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: AppSpacing.borderRadiusMD,
+        boxShadow: [
+          BoxShadow(
+            color: gradient.colors.first.withOpacity(0.3),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: AppSpacing.borderRadiusMD,
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: AppSpacing.borderRadiusXS,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 20),
+                ),
+                SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios, color: Colors.white.withOpacity(0.7), size: 14),
+              ],
+            ),
+          ),
         ),
       ),
-      onTap: onTap,
     );
   }
 }
 
-class _DashboardOverview extends StatelessWidget {
+class _DashboardOverview extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final moviesAsync = ref.watch(moviesProvider);
+    final screeningsAsync = ref.watch(screeningsProvider);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -320,70 +409,89 @@ class _DashboardOverview extends StatelessWidget {
           SizedBox(width: AppSpacing.md),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: AppSpacing.pagePadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.movie,
-                    title: 'Películas',
-                    value: '24',
-                    change: '+3',
-                    isPositive: true,
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryDark],
+      body: moviesAsync.when(
+        loading: () => Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text('Error: $error')),
+        data: (movies) {
+          return screeningsAsync.when(
+            loading: () => Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(child: Text('Error: $error')),
+            data: (screenings) {
+              final totalMovies = movies.length;
+              final totalFoodItems = mockFoodItems.length;
+
+              // Filter screenings for today
+              final now = DateTime.now();
+              final today = DateTime(now.year, now.month, now.day);
+              final tomorrow = today.add(Duration(days: 1));
+              final todayScreenings = screenings.where((s) =>
+                s.startTime.isAfter(today) && s.startTime.isBefore(tomorrow)
+              ).length;
+
+              return SingleChildScrollView(
+                padding: AppSpacing.pagePadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.movie,
+                            title: 'Películas',
+                            value: '$totalMovies',
+                            change: 'Total',
+                            isPositive: true,
+                            gradient: LinearGradient(
+                              colors: [AppColors.primary, AppColors.primaryDark],
+                            ),
+                            isDark: isDark,
+                          ),
+                        ),
+                        SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.event,
+                            title: 'Funciones Hoy',
+                            value: '$todayScreenings',
+                            change: 'Activas',
+                            isPositive: true,
+                            gradient: LinearGradient(
+                              colors: [AppColors.secondary, AppColors.secondaryDark],
+                            ),
+                            isDark: isDark,
+                          ),
+                        ),
+                        SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.fastfood,
+                            title: 'Combos Dulcería',
+                            value: '$totalFoodItems',
+                            change: 'Disponibles',
+                            isPositive: true,
+                            gradient: LinearGradient(
+                              colors: [AppColors.success, Color(0xFF059669)],
+                            ),
+                            isDark: isDark,
+                          ),
+                        ),
+                        SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.local_movies,
+                            title: 'Funciones Totales',
+                            value: '${screenings.length}',
+                            change: 'Sistema',
+                            isPositive: true,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                            ),
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
                     ),
-                    isDark: isDark,
-                  ),
-                ),
-                SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.event,
-                    title: 'Funciones Hoy',
-                    value: '48',
-                    change: '+8',
-                    isPositive: true,
-                    gradient: LinearGradient(
-                      colors: [AppColors.secondary, AppColors.secondaryDark],
-                    ),
-                    isDark: isDark,
-                  ),
-                ),
-                SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.confirmation_number,
-                    title: 'Boletos Vendidos',
-                    value: '342',
-                    change: '+12%',
-                    isPositive: true,
-                    gradient: LinearGradient(
-                      colors: [AppColors.success, Color(0xFF059669)],
-                    ),
-                    isDark: isDark,
-                  ),
-                ),
-                SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.attach_money,
-                    title: 'Ingresos Hoy',
-                    value: '\$4,280',
-                    change: '+18%',
-                    isPositive: true,
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
-                    ),
-                    isDark: isDark,
-                  ),
-                ),
-              ],
-            ),
 
             SizedBox(height: AppSpacing.xl),
 
@@ -453,8 +561,12 @@ class _DashboardOverview extends StatelessWidget {
                 ),
               ],
             ),
-          ],
-        ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -577,7 +689,7 @@ class _DashboardOverview extends StatelessWidget {
                 Text(
                   subtitle,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                 ),
               ],
@@ -586,7 +698,7 @@ class _DashboardOverview extends StatelessWidget {
           Text(
             time,
             style: AppTypography.labelSmall.copyWith(
-              color: AppColors.textTertiary,
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
             ),
           ),
         ],

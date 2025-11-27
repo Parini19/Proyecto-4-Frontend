@@ -8,6 +8,7 @@ import '../../../core/widgets/cinema_button.dart';
 import '../../../core/widgets/cinema_text_field.dart';
 import '../../../core/models/payment.dart';
 import '../../../core/providers/service_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../providers/booking_provider.dart';
 import 'confirmation_page.dart';
 
@@ -171,7 +172,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
               ),
               SizedBox(height: 4),
               Text(
-                '\$${total.toStringAsFixed(2)}',
+                CurrencyFormatter.formatCRC(total),
                 style: AppTypography.displaySmall.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -876,7 +877,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
         child: CinemaButton(
           text: _isProcessing
               ? 'Procesando...'
-              : 'Pagar \$${total.toStringAsFixed(2)}',
+              : 'Pagar ${CurrencyFormatter.formatCRC(total)}',
           icon: _isProcessing ? null : Icons.lock_outline,
           isFullWidth: true,
           size: ButtonSize.large,
@@ -888,9 +889,11 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
 
   Future<void> _processPayment() async {
     final bookingState = ref.read(bookingProvider);
+    final isFoodOnlyOrder = bookingState.bookingId == null;
 
-    // Validate booking ID exists
-    if (bookingState.bookingId == null) {
+    // For food-only orders, we don't need a bookingId
+    // For movie bookings, we do need it
+    if (!isFoodOnlyOrder && bookingState.bookingId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error: No se encontró la reserva'),
@@ -919,9 +922,14 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
       final expiryMonth = expiryParts.isNotEmpty ? expiryParts[0].trim() : '01';
       final expiryYear = expiryParts.length > 1 ? expiryParts[1].trim() : '25';
 
+      // For food-only orders, create a temporary booking ID
+      final String effectiveBookingId = isFoodOnlyOrder
+          ? 'FOOD-${DateTime.now().millisecondsSinceEpoch}'
+          : bookingState.bookingId!;
+
       // Create payment request
       final request = PaymentRequest(
-        bookingId: bookingState.bookingId!,
+        bookingId: effectiveBookingId,
         amount: bookingState.totalPrice,
         cardNumber: _cardNumberController.text.replaceAll(' ', ''),
         cardHolderName: _cardHolderController.text,
@@ -941,7 +949,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
           context,
           MaterialPageRoute(
             builder: (context) => ConfirmationPage(
-              bookingId: bookingState.bookingId!,
+              bookingId: effectiveBookingId,
               invoiceNumber: result.invoiceNumber ?? '',
               ticketsGenerated: result.ticketsGenerated ?? 0,
             ),

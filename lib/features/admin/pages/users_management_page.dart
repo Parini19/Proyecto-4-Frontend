@@ -315,25 +315,40 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: AppColors.textTertiary,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Icon(
+                Icons.search_off,
+                size: 64,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              );
+            }
           ),
           SizedBox(height: AppSpacing.lg),
-          Text(
-            'No se encontraron resultados',
-            style: AppTypography.titleLarge.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.bold,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'No se encontraron resultados',
+                style: AppTypography.titleLarge.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
           ),
           SizedBox(height: AppSpacing.sm),
-          Text(
-            'Intenta con otros términos de búsqueda',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'Intenta con otros términos de búsqueda',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+              );
+            }
           ),
         ],
       ),
@@ -345,25 +360,40 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.people_outline,
-            size: 64,
-            color: AppColors.textTertiary,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Icon(
+                Icons.people_outline,
+                size: 64,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              );
+            }
           ),
           SizedBox(height: AppSpacing.lg),
-          Text(
-            'No hay usuarios registrados',
-            style: AppTypography.titleLarge.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.bold,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'No hay usuarios registrados',
+                style: AppTypography.titleLarge.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
           ),
           SizedBox(height: AppSpacing.sm),
-          Text(
-            'Agrega el primer usuario para comenzar',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'Agrega el primer usuario para comenzar',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+              );
+            }
           ),
           SizedBox(height: AppSpacing.xl),
           CinemaButton(
@@ -428,12 +458,17 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
   }
 
   Widget _buildHeaderCell(String text) {
-    return Text(
-      text,
-      style: AppTypography.bodyMedium.copyWith(
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimary,
-      ),
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Text(
+          text,
+          style: AppTypography.bodyMedium.copyWith(
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          ),
+        );
+      }
     );
   }
 
@@ -484,14 +519,14 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                       Text(
                         user.email,
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         ),
                       ),
                       SizedBox(height: AppSpacing.xs),
                       Text(
                         'UID: ${user.uid}',
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textTertiary,
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -566,11 +601,11 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           Expanded(
             flex: 2,
             child: Text(
-              user.lastLoginAt != null 
+              user.lastLoginAt != null
                   ? _formatDate(user.lastLoginAt!)
                   : 'Nunca',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),
           ),

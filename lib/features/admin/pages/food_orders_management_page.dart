@@ -6,6 +6,7 @@ import '../../../core/widgets/cinema_button.dart';
 import '../../../core/widgets/cinema_text_field.dart';
 import '../../../core/models/food_order.dart';
 import '../../../core/services/food_order_service.dart';
+import '../../../core/utils/currency_formatter.dart';
 
 
 class FoodOrdersManagementPage extends StatefulWidget {
@@ -332,11 +333,16 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          Text(
-            title,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                title,
+                style: AppTypography.bodySmall.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
+              );
+            }
           ),
         ],
       ),
@@ -397,27 +403,42 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 80,
-            color: AppColors.textTertiary,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Icon(
+                Icons.receipt_long_outlined,
+                size: 80,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              );
+            }
           ),
           SizedBox(height: AppSpacing.md),
-          Text(
-            'No hay órdenes registradas',
-            style: AppTypography.headlineSmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'No hay órdenes registradas',
+                style: AppTypography.headlineSmall.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
+              );
+            }
           ),
           SizedBox(height: AppSpacing.sm),
-          Text(
-            _searchQuery.isNotEmpty 
-                ? 'No se encontraron órdenes con los criterios de búsqueda'
-                : 'Las órdenes de comida aparecerán aquí cuando los usuarios las realicen',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            textAlign: TextAlign.center,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                _searchQuery.isNotEmpty
+                    ? 'No se encontraron órdenes con los criterios de búsqueda'
+                    : 'Las órdenes de comida aparecerán aquí cuando los usuarios las realicen',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+                textAlign: TextAlign.center,
+              );
+            }
           ),
         ],
       ),
@@ -477,12 +498,17 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
   }
 
   Widget _buildHeaderCell(String text) {
-    return Text(
-      text,
-      style: AppTypography.labelMedium.copyWith(
-        fontWeight: FontWeight.w600,
-        color: AppColors.textSecondary,
-      ),
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Text(
+          text,
+          style: AppTypography.labelMedium.copyWith(
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+          ),
+        );
+      }
     );
   }
 
@@ -514,7 +540,7 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
                 Text(
                   '${order.foodComboIds.length} items',
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                   ),
                 ),
               ],
@@ -535,7 +561,7 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
           Expanded(
             flex: 2,
             child: Text(
-              '\$${order.totalPrice.toStringAsFixed(2)}',
+              CurrencyFormatter.formatCRC(order.totalPrice),
               style: AppTypography.bodyMedium.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.success,
@@ -573,11 +599,11 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
           Expanded(
             flex: 2,
             child: Text(
-              order.createdAt != null 
+              order.createdAt != null
                   ? '${order.createdAt!.day}/${order.createdAt!.month}/${order.createdAt!.year}'
                   : 'N/A',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),
           ),

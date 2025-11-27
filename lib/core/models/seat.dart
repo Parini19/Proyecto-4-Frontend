@@ -76,11 +76,11 @@ extension SeatTypeExtension on SeatType {
   double get price {
     switch (this) {
       case SeatType.regular:
-        return 120.0; // MXN
+        return 4500.0; // CRC (Colones)
       case SeatType.vip:
-        return 180.0; // MXN
+        return 6500.0; // CRC (Colones)
       case SeatType.wheelchair:
-        return 120.0; // MXN
+        return 4500.0; // CRC (Colones)
     }
   }
 

@@ -55,6 +55,8 @@ class _CinemaTextFieldState extends State<CinemaTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: widget.onTap,
       child: TextFormField(
@@ -70,16 +72,32 @@ class _CinemaTextFieldState extends State<CinemaTextField> {
         textCapitalization: widget.textCapitalization ?? TextCapitalization.none,
         inputFormatters: widget.inputFormatters,
         style: AppTypography.bodyLarge.copyWith(
-          color: widget.enabled ? AppColors.textPrimary : AppColors.textDisabled,
+          color: widget.enabled
+              ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
+              : AppColors.textDisabled,
         ),
         decoration: InputDecoration(
           labelText: widget.label,
+          labelStyle: AppTypography.bodyMedium.copyWith(
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            fontSize: 16,
+            height: 1.2,
+          ),
+          floatingLabelStyle: AppTypography.bodySmall.copyWith(
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
           hintText: widget.hint,
+          hintStyle: AppTypography.bodyMedium.copyWith(
+            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+            fontSize: 15,
+          ),
           prefixIcon: widget.prefixIcon != null
               ? Icon(
                   widget.prefixIcon,
                   color: widget.enabled
-                      ? AppColors.textSecondary
+                      ? (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)
                       : AppColors.textDisabled,
                 )
               : null,
@@ -87,7 +105,7 @@ class _CinemaTextFieldState extends State<CinemaTextField> {
               ? IconButton(
                   icon: Icon(
                     _obscureText ? Icons.visibility : Icons.visibility_off,
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                   onPressed: () {
                     setState(() {
@@ -98,9 +116,12 @@ class _CinemaTextFieldState extends State<CinemaTextField> {
               : widget.suffixIcon,
           filled: true,
           fillColor: widget.enabled
-              ? AppColors.surfaceVariant
-              : AppColors.surfaceVariant.withOpacity(0.5),
-          contentPadding: AppSpacing.inputPadding,
+              ? (isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant)
+              : (isDark ? AppColors.darkSurfaceVariant.withOpacity(0.5) : AppColors.lightSurfaceVariant.withOpacity(0.5)),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.lg,
+          ),
           border: OutlineInputBorder(
             borderRadius: AppSpacing.borderRadiusSM,
             borderSide: BorderSide.none,

@@ -5,6 +5,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../providers/booking_provider.dart';
 
 class ConfirmationPage extends ConsumerWidget {
@@ -130,7 +131,7 @@ class ConfirmationPage extends ConsumerWidget {
                         ),
                         _buildDetailRow(
                           'Total Pagado',
-                          '\$${bookingState.totalPrice.toStringAsFixed(2)}',
+                          CurrencyFormatter.formatCRC(bookingState.totalPrice),
                         ),
                       ],
 

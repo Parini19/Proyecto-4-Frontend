@@ -5,6 +5,9 @@ import '../services/booking_service.dart';
 import '../services/payment_service.dart';
 import '../services/ticket_service.dart';
 import '../services/movie_service.dart';
+import '../services/screening_service.dart';
+import '../services/audit_log_service.dart';
+import '../services/reports_service.dart';
 
 /// Dio provider - simple configuration for web and mobile
 final dioProvider = Provider<Dio>((ref) {
@@ -44,4 +47,21 @@ final ticketServiceProvider = Provider<TicketService>((ref) {
 final movieServiceProvider = Provider<MovieService>((ref) {
   final dio = ref.watch(dioProvider);
   return MovieService(dio);
+});
+
+/// Screening service provider
+final screeningServiceProvider = Provider<ScreeningService>((ref) {
+  return ScreeningService();
+});
+
+/// Audit Log service provider
+final auditLogServiceProvider = Provider<AuditLogService>((ref) {
+  final dio = ref.watch(dioProvider);
+  return AuditLogService(dio);
+});
+
+/// Reports service provider
+final reportsServiceProvider = Provider<ReportsService>((ref) {
+  final dio = ref.watch(dioProvider);
+  return ReportsService(dio);
 });

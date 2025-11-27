@@ -50,13 +50,35 @@ class FoodCombo {
 
   /// Convert to FoodItem for compatibility with existing UI components
   FoodItem toFoodItem() {
+    // Map the string category from backend to FoodCategory enum
+    FoodCategory mappedCategory;
+    switch (category.toLowerCase()) {
+      case 'combo':
+        mappedCategory = FoodCategory.combo;
+        break;
+      case 'popcorn':
+        mappedCategory = FoodCategory.popcorn;
+        break;
+      case 'drink':
+        mappedCategory = FoodCategory.drink;
+        break;
+      case 'candy':
+        mappedCategory = FoodCategory.candy;
+        break;
+      case 'snack':
+        mappedCategory = FoodCategory.snack;
+        break;
+      default:
+        mappedCategory = FoodCategory.combo; // fallback
+    }
+
     return FoodItem(
       id: id,
       name: name,
       description: description,
       price: price,
       imageUrl: imageUrl,
-      category: FoodCategory.combo,
+      category: mappedCategory,
       isAvailable: isAvailable,
     );
   }

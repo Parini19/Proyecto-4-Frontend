@@ -3,15 +3,24 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/data/movies_data.dart';
 import '../../core/models/movie_model.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/user_service.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/providers/movies_provider.dart';
+import '../../core/providers/cinema_provider.dart';
 import '../../core/widgets/floating_chat_bubble.dart';
 import '../auth/login_page.dart';
 import '../movies/pages/movie_details_page.dart';
+import '../booking/pages/food_menu_page.dart';
+import '../admin/pages/admin_dashboard.dart';
+import '../cinema/pages/cinema_selection_page.dart';
+import '../user/pages/my_tickets_page.dart';
+import '../user/pages/purchase_history_page.dart';
+import '../user/pages/promotions_page.dart';
+import '../user/pages/profile_page.dart';
 
 import 'dart:async';
 
@@ -113,9 +122,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Watch the movie providers
-    final nowPlayingMoviesAsync = ref.watch(nowPlayingMoviesProvider);
-    final upcomingMoviesAsync = ref.watch(upcomingMoviesProvider);
-    final popularMoviesAsync = ref.watch(popularMoviesProvider);
+    final nowPlayingMoviesAsync = ref.watch(nowPlayingFilteredByCinemaProvider);
+    final upcomingMoviesAsync = ref.watch(upcomingFilteredByCinemaProvider);
+    final popularMoviesAsync = ref.watch(popularFilteredByCinemaProvider);
 
     return Scaffold(
       body: Stack(
@@ -134,6 +143,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                 // Hero Section (Netflix-style)
                 SliverToBoxAdapter(
                   child: _buildHeroSectionWithProvider(size, isDark, popularMoviesAsync),
+                ),
+
+                // Cinema Selection Banner
+                SliverToBoxAdapter(
+                  child: _buildCinemaSelectionBanner(ref, isDark, size),
                 ),
 
                 // En Cartelera Section
@@ -411,7 +425,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 // Navigation Links (Desktop only) - Hide when searching
                 if (!_isSearching && MediaQuery.of(context).size.width > 1024) ...[
                   SizedBox(width: 40),
-                  Flexible(
+                  Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -425,59 +439,60 @@ class _HomePageState extends ConsumerState<HomePage> {
                             _buildNavLink('Historial', false, isDark),
                           ],
                           _buildNavLink('Promociones', false, isDark),
+                          _buildNavLink('Dulcería', false, isDark),
                         ],
                       ),
                     ),
                   ),
                   SizedBox(width: 16),
-                ],
+                ]
+                else
+                  // Spacer to push right-side elements to the end
+                  const Spacer(),
 
                 // Theme Toggle Button
                 _buildThemeToggle(isDark),
 
                 SizedBox(width: 8),
 
-                // Search Icon/Bar
+                // Search Icon/Bar - Fixed width to prevent layout shift
                 if (_isSearching)
-                  Flexible(
-                    flex: 2,
-                    child: Container(
-                      height: 40,
-                      margin: EdgeInsets.symmetric(horizontal: 8),
-                      constraints: BoxConstraints(maxWidth: 600),
-                      child: TextField(
-                        controller: _searchController,
-                        autofocus: true,
-                        onChanged: _searchMovies,
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
+                  Container(
+                    width: MediaQuery.of(context).size.width > 768 ? 400 : 250,
+                    height: 40,
+                    margin: EdgeInsets.symmetric(horizontal: 8),
+                    child: TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      onChanged: _searchMovies,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar películas...',
+                        hintStyle: TextStyle(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.5)
+                              : Colors.black.withOpacity(0.5),
                         ),
-                        decoration: InputDecoration(
-                          hintText: 'Buscar películas...',
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? Colors.white.withOpacity(0.5)
-                                : Colors.black.withOpacity(0.5),
-                          ),
-                          filled: true,
-                          fillColor: isDark
-                              ? AppColors.darkSurfaceVariant
-                              : AppColors.lightSurfaceVariant,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                          suffixIcon: IconButton(
-                            icon: Icon(Icons.close),
-                            onPressed: () {
-                              setState(() {
-                                _isSearching = false;
-                                _searchController.clear();
-                                _searchResults = [];
-                              });
-                            },
-                          ),
+                        filled: true,
+                        fillColor: isDark
+                            ? AppColors.darkSurfaceVariant
+                            : AppColors.lightSurfaceVariant,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              _isSearching = false;
+                              _searchController.clear();
+                              _searchResults = [];
+                            });
+                          },
                         ),
                       ),
                     ),
@@ -548,11 +563,25 @@ class _HomePageState extends ConsumerState<HomePage> {
           } else if (text == 'Próximos') {
             _scrollToSection(_proximosKey);
           } else if (text == 'Mis Boletos') {
-            _showComingSoonMessage('Mis Boletos próximamente');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => MyTicketsPage()),
+            );
           } else if (text == 'Historial') {
-            _showComingSoonMessage('Historial de compras próximamente');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PurchaseHistoryPage()),
+            );
           } else if (text == 'Promociones') {
-            _showComingSoonMessage('Promociones próximamente');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PromotionsPage()),
+            );
+          } else if (text == 'Dulcería') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const FoodMenuPage()),
+            );
           }
         },
         child: Text(
@@ -597,16 +626,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
           PopupMenuItem(
-            value: 'tickets',
-            child: Row(
-              children: [
-                Icon(Icons.confirmation_number_outlined, size: 20),
-                SizedBox(width: 12),
-                Text('Mis Boletos'),
-              ],
-            ),
-          ),
-          PopupMenuItem(
             value: 'history',
             child: Row(
               children: [
@@ -616,6 +635,25 @@ class _HomePageState extends ConsumerState<HomePage> {
               ],
             ),
           ),
+          if (_userService.isAdmin()) ...[
+            PopupMenuDivider(),
+            PopupMenuItem(
+              value: 'admin',
+              child: Row(
+                children: [
+                  Icon(Icons.admin_panel_settings, size: 20, color: AppColors.primary),
+                  SizedBox(width: 12),
+                  Text(
+                    'Panel de Admin',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           PopupMenuDivider(),
           PopupMenuItem(
             value: 'logout',
@@ -637,12 +675,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                 MaterialPageRoute(builder: (context) => LoginPage()),
               );
             }
+          } else if (value == 'admin') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => AdminDashboard()),
+            );
           } else if (value == 'profile') {
-            _showComingSoonMessage('Perfil próximamente');
-          } else if (value == 'tickets') {
-            _showComingSoonMessage('Mis Boletos próximamente');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfilePage()),
+            );
           } else if (value == 'history') {
-            _showComingSoonMessage('Historial de compras próximamente');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PurchaseHistoryPage()),
+            );
           }
         },
         child: Container(
@@ -996,6 +1043,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     final isDesktop = size.width > 1024;
     final cardWidth = isDesktop ? 250.0 : 180.0;
 
+    // Safe color handling
+    final hasColors = movie.colors.isNotEmpty;
+    final defaultColors = ['#1a1a1a', '#3a3a3a'];
+    final gradientColors = hasColors
+        ? movie.colors.map((colorHex) => Color(int.parse(colorHex.replaceFirst('#', '0xff')))).toList()
+        : defaultColors.map((colorHex) => Color(int.parse(colorHex.replaceFirst('#', '0xff')))).toList();
+
     return Container(
       width: cardWidth,
       margin: EdgeInsets.only(right: 16),
@@ -1017,52 +1071,83 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: movie.colors.map((colorHex) {
-                      return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
-                    }).toList(),
-                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(int.parse(movie.colors[0].replaceFirst('#', '0xff'))).withOpacity(0.3),
+                      color: gradientColors[0].withOpacity(0.3),
                       blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
                   ],
                 ),
-                child: Stack(
-                  children: [
-                    // Ícono de película
-                    Center(
-                      child: Icon(
-                        Icons.movie_outlined,
-                        size: 64,
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                    ),
-                    // Clasificación en esquina
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(4),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Gradiente de fondo (fallback si no hay poster)
+                      if (movie.posterUrl == null || movie.posterUrl!.isEmpty)
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: gradientColors,
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.movie_outlined,
+                              size: 64,
+                              color: Colors.white.withOpacity(0.2),
+                            ),
+                          ),
+                        )
+                      // Imagen del poster
+                      else
+                        Image.network(
+                          movie.posterUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: gradientColors,
+                                ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.movie_outlined,
+                                  size: 64,
+                                  color: Colors.white.withOpacity(0.2),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        child: Text(
-                          movie.classification,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                      // Clasificación en esquina
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            movie.classification,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1371,6 +1456,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _scrollToSection(_proximosKey);
               },
             ),
+            ListTile(
+              leading: Icon(Icons.restaurant_menu),
+              title: Text('Dulcería'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const FoodMenuPage()),
+                );
+              },
+            ),
 
             // User-specific options
             if (_authService.isAuthenticated) ...[
@@ -1380,7 +1476,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 title: Text('Mis Boletos'),
                 onTap: () {
                   Navigator.pop(context);
-                  _showComingSoonMessage('Mis Boletos próximamente');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MyTicketsPage()),
+                  );
                 },
               ),
               ListTile(
@@ -1399,6 +1498,26 @@ class _HomePageState extends ConsumerState<HomePage> {
                   _showComingSoonMessage('Perfil próximamente');
                 },
               ),
+              if (_userService.isAdmin()) ...[
+                Divider(),
+                ListTile(
+                  leading: Icon(Icons.admin_panel_settings, color: AppColors.primary),
+                  title: Text(
+                    'Panel de Admin',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AdminDashboard()),
+                    );
+                  },
+                ),
+              ],
               Divider(),
               ListTile(
                 leading: Icon(Icons.logout, color: AppColors.error),
@@ -1619,8 +1738,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     // Safe bounds check for current hero index
     final safeHeroIndex = heroMovies.isNotEmpty ? (_currentHeroIndex % heroMovies.length) : 0;
 
+    // Safe color handling
+    final hasColors = movie.colors.isNotEmpty;
+    final defaultColors = ['#1a1a1a', '#3a3a3a'];
+    final gradientColors = hasColors
+        ? movie.colors.map((colorHex) => Color(int.parse(colorHex.replaceFirst('#', '0xff')))).toList()
+        : defaultColors.map((colorHex) => Color(int.parse(colorHex.replaceFirst('#', '0xff')))).toList();
+
     return Container(
       height: size.height * 0.65,
+      width: double.infinity,
       child: Stack(
         children: [
           // Background Image with Gradient
@@ -1628,20 +1755,21 @@ class _HomePageState extends ConsumerState<HomePage> {
             duration: Duration(milliseconds: 800),
             child: Container(
               key: ValueKey(safeHeroIndex),
+              width: double.infinity,
+              height: size.height * 0.65,
               decoration: BoxDecoration(
                 image: (movie.posterUrl != null && movie.posterUrl!.isNotEmpty)
                     ? DecorationImage(
                         image: NetworkImage(movie.posterUrl!),
                         fit: BoxFit.cover,
+                        alignment: Alignment.center,
                       )
                     : null,
                 gradient: (movie.posterUrl == null || movie.posterUrl!.isEmpty)
                     ? LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: movie.colors.map((colorHex) {
-                          return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
-                        }).toList(),
+                        colors: gradientColors,
                       )
                     : null,
               ),
@@ -1800,8 +1928,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     // Safe bounds check for current hero index
     final safeHeroIndex = heroMovies.isNotEmpty ? (_currentHeroIndex % heroMovies.length) : 0;
 
+    // Safe color handling
+    final hasColors = movie.colors.isNotEmpty;
+    final defaultColors = ['#1a1a1a', '#3a3a3a'];
+    final gradientColors = hasColors
+        ? movie.colors.map((colorHex) => Color(int.parse(colorHex.replaceFirst('#', '0xff')))).toList()
+        : defaultColors.map((colorHex) => Color(int.parse(colorHex.replaceFirst('#', '0xff')))).toList();
+
     return Container(
       height: 600,
+      width: double.infinity,
       child: Stack(
         children: [
           // Background Image (Blurred poster for backdrop effect)
@@ -1809,20 +1945,21 @@ class _HomePageState extends ConsumerState<HomePage> {
             duration: Duration(milliseconds: 1000),
             child: Container(
               key: ValueKey(safeHeroIndex),
+              width: double.infinity,
+              height: 600,
               decoration: BoxDecoration(
                 image: (movie.posterUrl != null && movie.posterUrl!.isNotEmpty)
                     ? DecorationImage(
                         image: NetworkImage(movie.posterUrl!),
                         fit: BoxFit.cover,
+                        alignment: Alignment.center,
                       )
                     : null,
                 gradient: (movie.posterUrl == null || movie.posterUrl!.isEmpty)
                     ? LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: movie.colors.map((colorHex) {
-                          return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
-                        }).toList(),
+                        colors: gradientColors,
                       )
                     : null,
               ),
@@ -1882,9 +2019,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ? LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: movie.colors.map((colorHex) {
-                                  return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
-                                }).toList(),
+                                colors: gradientColors,
                               )
                             : null,
                         boxShadow: [
@@ -1907,9 +2042,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                       gradient: LinearGradient(
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
-                                        colors: movie.colors.map((colorHex) {
-                                          return Color(int.parse(colorHex.replaceFirst('#', '0xff')));
-                                        }).toList(),
+                                        colors: gradientColors,
                                       ),
                                     ),
                                     child: Center(
@@ -2082,29 +2215,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 ),
                               ),
                             ),
-                            SizedBox(width: 16),
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                // TODO: Add to watchlist functionality
-                              },
-                              icon: Icon(Icons.add, size: 24),
-                              label: Padding(
-                                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                                child: Text(
-                                  'Mi Lista',
-                                  style: AppTypography.titleMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: BorderSide(color: Colors.white.withOpacity(0.5), width: 2),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ],
@@ -2206,6 +2316,102 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  // Cinema Selection Banner
+  Widget _buildCinemaSelectionBanner(WidgetRef ref, bool isDark, Size size) {
+    final selectedCinema = ref.watch(selectedCinemaProvider);
+    final horizontalPadding = _getHorizontalPadding(size.width);
+
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: 24,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CinemaSelectionPage(),
+              ),
+            );
+          },
+          borderRadius: AppSpacing.borderRadiusLG,
+          child: Container(
+            padding: AppSpacing.paddingMD,
+            decoration: BoxDecoration(
+              gradient: selectedCinema != null
+                  ? AppColors.primaryGradient
+                  : LinearGradient(
+                      colors: [
+                        AppColors.secondary.withOpacity(0.8),
+                        AppColors.primary.withOpacity(0.6),
+                      ],
+                    ),
+              borderRadius: AppSpacing.borderRadiusLG,
+              boxShadow: [
+                BoxShadow(
+                  color: (selectedCinema != null ? AppColors.primary : AppColors.secondary)
+                      .withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: AppSpacing.borderRadiusMD,
+                  ),
+                  child: Icon(
+                    selectedCinema != null ? Icons.location_on : Icons.add_location_alt,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selectedCinema != null ? selectedCinema.name : '¿Dónde quieres ver tu película?',
+                        style: AppTypography.titleMedium.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        selectedCinema != null
+                            ? '${selectedCinema.city} • Toca para cambiar'
+                            : 'Selecciona tu cine para ver funciones',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

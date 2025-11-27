@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../providers/booking_provider.dart';
 import '../widgets/seat_widget.dart';
 import '../widgets/screen_indicator.dart';
@@ -33,21 +34,39 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   void initState() {
     super.initState();
     // Set the movie in booking state
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(bookingProvider.notifier).setMovie(widget.movie);
 
-      // Get showtimes and select the one matching the time
-      final showtimes = ref.read(showtimesProvider(widget.movie.id));
-      final showtime = showtimes.firstWhere(
-        (st) => st.timeFormatted == widget.showtime,
-        orElse: () => showtimes.first,
-      );
+      try {
+        // Get showtimes and select the one matching the time
+        final showtimes = await ref.read(showtimesProvider(widget.movie.id).future);
 
-      setState(() {
-        _selectedShowtime = showtime;
-      });
+        if (showtimes.isEmpty) {
+          // No showtimes available
+          if (mounted) {
+            Navigator.pop(context);
+          }
+          return;
+        }
 
-      ref.read(bookingProvider.notifier).setShowtime(showtime);
+        final showtime = showtimes.firstWhere(
+          (st) => st.timeFormatted == widget.showtime,
+          orElse: () => showtimes.first,
+        );
+
+        if (mounted) {
+          setState(() {
+            _selectedShowtime = showtime;
+          });
+
+          ref.read(bookingProvider.notifier).setShowtime(showtime);
+        }
+      } catch (e) {
+        print('Error loading showtimes: $e');
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      }
     });
   }
 
@@ -182,9 +201,11 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   Widget _buildBottomBar(BuildContext context, BookingState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -209,7 +230,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                       Text(
                         '${state.seatCount} asiento${state.seatCount > 1 ? 's' : ''}',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         ),
                       ),
                       Text(
@@ -219,7 +240,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                     ],
                   ),
                   Text(
-                    '\$${state.totalPrice.toStringAsFixed(2)}',
+                    CurrencyFormatter.formatCRC(state.totalPrice),
                     style: AppTypography.headlineSmall.copyWith(
                       color: AppColors.primary,
                     ),
@@ -255,12 +276,14 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   void _showLegend(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(AppSpacing.radiusLG),
             topRight: Radius.circular(AppSpacing.radiusLG),
@@ -277,7 +300,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
                   borderRadius: AppSpacing.borderRadiusRound,
                 ),
               ),
@@ -296,11 +319,11 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
               label: 'Disponible',
             ),
             _buildLegendItem(
-              color: AppColors.warning,
+              color: AppColors.vip,
               label: 'VIP - \$180',
             ),
             _buildLegendItem(
-              color: AppColors.surfaceVariant,
+              color: isDark ? AppColors.darkTextSecondary.withOpacity(0.4) : AppColors.lightTextSecondary.withOpacity(0.5),
               label: 'Ocupado',
               icon: Icons.close,
             ),

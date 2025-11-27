@@ -7,6 +7,7 @@ import '../../../core/widgets/cinema_button.dart';
 import '../../../core/widgets/cinema_text_field.dart';
 import '../../../core/models/food_combo.dart';
 import '../../../core/services/food_combo_service.dart';
+import '../../../core/utils/currency_formatter.dart';
 
 class FoodCombosManagementPage extends StatefulWidget {
   const FoodCombosManagementPage({super.key});
@@ -315,25 +316,40 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: AppColors.textTertiary,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Icon(
+                Icons.search_off,
+                size: 64,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              );
+            }
           ),
           SizedBox(height: AppSpacing.lg),
-          Text(
-            'No se encontraron resultados',
-            style: AppTypography.titleLarge.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.bold,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'No se encontraron resultados',
+                style: AppTypography.titleLarge.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
           ),
           SizedBox(height: AppSpacing.sm),
-          Text(
-            'Intenta con otros términos de búsqueda',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'Intenta con otros términos de búsqueda',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+              );
+            }
           ),
         ],
       ),
@@ -345,25 +361,40 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.fastfood_outlined,
-            size: 64,
-            color: AppColors.textTertiary,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Icon(
+                Icons.fastfood_outlined,
+                size: 64,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              );
+            }
           ),
           SizedBox(height: AppSpacing.lg),
-          Text(
-            'No hay combos de comida',
-            style: AppTypography.titleLarge.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.bold,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'No hay combos de comida',
+                style: AppTypography.titleLarge.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
           ),
           SizedBox(height: AppSpacing.sm),
-          Text(
-            'Agrega el primer combo de comida para comenzar',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'Agrega el primer combo de comida para comenzar',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+              );
+            }
           ),
           SizedBox(height: AppSpacing.xl),
           CinemaButton(
@@ -428,12 +459,17 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
   }
 
   Widget _buildHeaderCell(String text) {
-    return Text(
-      text,
-      style: AppTypography.bodyMedium.copyWith(
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimary,
-      ),
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Text(
+          text,
+          style: AppTypography.bodyMedium.copyWith(
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          ),
+        );
+      },
     );
   }
 
@@ -507,7 +543,7 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
                       Text(
                         combo.description,
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -517,7 +553,7 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
                         Text(
                           'Items: ${combo.items.join(', ')}',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textTertiary,
+                            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                             fontStyle: FontStyle.italic,
                           ),
                           maxLines: 1,
@@ -558,7 +594,7 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
           Expanded(
             flex: 2,
             child: Text(
-              '\$${combo.price.toStringAsFixed(2)}',
+              CurrencyFormatter.formatCRC(combo.price),
               style: AppTypography.titleMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.success,

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/food_item.dart';
 import '../../../core/models/food_combo.dart';
+import '../../../core/services/food_combo_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../providers/booking_provider.dart';
 import '../widgets/food_item_card.dart';
 import 'checkout_summary_page.dart';
@@ -18,6 +20,7 @@ class FoodMenuPage extends ConsumerStatefulWidget {
 }
 
 class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
+  final FoodComboService _foodComboService = FoodComboService();
   FoodCategory _selectedCategory = FoodCategory.combo;
   List<FoodItem> _allFoodItems = [];
   bool _isLoading = true;
@@ -36,9 +39,13 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
     });
 
     try {
-      // Use mock data for all categories
-      final allItems = mockFoodItems
-          .where((item) => item.category == _selectedCategory)
+      // Get food combos from backend
+      final foodCombos = await _foodComboService.getAllFoodCombos();
+
+      // Convert FoodCombos to FoodItems
+      final allItems = foodCombos
+          .map((combo) => combo.toFoodItem())
+          .where((item) => item.category == _selectedCategory && item.isAvailable)
           .toList();
 
       setState(() {
@@ -150,8 +157,8 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
             child: _buildFoodItemsContent(),
           ),
 
-          // Bottom bar
-          if (bookingState.hasSelection)
+          // Bottom bar - Show when there are food items OR when there's a movie selection
+          if (bookingState.hasFoodItems || bookingState.hasSelection)
             _buildBottomBar(context, bookingState),
         ],
       ),
@@ -216,31 +223,58 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
       );
     }
 
-    return GridView.builder(
-      padding: AppSpacing.pagePadding,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: AppSpacing.md,
-        mainAxisSpacing: AppSpacing.md,
-      ),
-      itemCount: _allFoodItems.length,
-      itemBuilder: (context, index) {
-        final foodItem = _allFoodItems[index];
-        return FoodItemCard(
-          foodItem: foodItem,
-          quantity: ref
-              .read(bookingProvider.notifier)
-              .getFoodItemQuantity(foodItem.id),
-          onAdd: () {
-            ref
-                .read(bookingProvider.notifier)
-                .addFoodItem(foodItem);
-          },
-          onRemove: () {
-            ref
-                .read(bookingProvider.notifier)
-                .removeFoodItem(foodItem.id);
+    // Responsive grid layout
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate number of columns based on screen width
+        int crossAxisCount;
+        double childAspectRatio;
+
+        if (constraints.maxWidth > 1200) {
+          // Desktop large
+          crossAxisCount = 3;
+          childAspectRatio = 3.5;
+        } else if (constraints.maxWidth > 900) {
+          // Desktop small / Tablet landscape
+          crossAxisCount = 2;
+          childAspectRatio = 3.2;
+        } else if (constraints.maxWidth > 600) {
+          // Tablet portrait
+          crossAxisCount = 2;
+          childAspectRatio = 2.8;
+        } else {
+          // Mobile
+          crossAxisCount = 1;
+          childAspectRatio = 4.5;
+        }
+
+        return GridView.builder(
+          padding: AppSpacing.pagePadding,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: AppSpacing.md,
+            mainAxisSpacing: AppSpacing.md,
+          ),
+          itemCount: _allFoodItems.length,
+          itemBuilder: (context, index) {
+            final foodItem = _allFoodItems[index];
+            return FoodItemCard(
+              foodItem: foodItem,
+              quantity: ref
+                  .read(bookingProvider.notifier)
+                  .getFoodItemQuantity(foodItem.id),
+              onAdd: () {
+                ref
+                    .read(bookingProvider.notifier)
+                    .addFoodItem(foodItem);
+              },
+              onRemove: () {
+                ref
+                    .read(bookingProvider.notifier)
+                    .removeFoodItem(foodItem.id);
+              },
+            );
           },
         );
       },
@@ -248,9 +282,11 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
   }
 
   Widget _buildBottomBar(BuildContext context, BookingState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -278,7 +314,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
                       ),
                     ),
                     Text(
-                      '\$${state.totalPrice.toStringAsFixed(2)}',
+                      CurrencyFormatter.formatCRC(state.totalPrice),
                       style: AppTypography.headlineSmall.copyWith(
                         color: AppColors.primary,
                       ),
@@ -311,18 +347,19 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
               },
             ),
 
-            // Skip button
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CheckoutSummaryPage(),
-                  ),
-                );
-              },
-              child: const Text('Omitir alimentos'),
-            ),
+            // Skip button - Only show when there's a movie selection (not for food-only orders)
+            if (state.hasSelection)
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CheckoutSummaryPage(),
+                    ),
+                  );
+                },
+                child: const Text('Omitir alimentos'),
+              ),
           ],
         ),
       ),
@@ -331,6 +368,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
 
   void _showCartSheet(BuildContext context) {
     final state = ref.read(bookingProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
@@ -338,7 +376,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
       isScrollControlled: true,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(AppSpacing.radiusLG),
             topRight: Radius.circular(AppSpacing.radiusLG),
@@ -359,7 +397,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
                   borderRadius: AppSpacing.borderRadiusRound,
                 ),
               ),
@@ -403,7 +441,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
             Container(
               padding: AppSpacing.paddingMD,
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
                 borderRadius: AppSpacing.borderRadiusMD,
               ),
               child: Row(
@@ -414,7 +452,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
                     style: AppTypography.titleMedium,
                   ),
                   Text(
-                    '\$${state.foodTotal.toStringAsFixed(2)}',
+                    CurrencyFormatter.formatCRC(state.foodTotal),
                     style: AppTypography.titleLarge.copyWith(
                       color: AppColors.primary,
                     ),
@@ -429,13 +467,16 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
   }
 
   Widget _buildCartItem(CartItem cartItem) {
-    return Container(
-      margin: EdgeInsets.only(bottom: AppSpacing.md),
-      padding: AppSpacing.paddingMD,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: AppSpacing.borderRadiusMD,
-      ),
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Container(
+          margin: EdgeInsets.only(bottom: AppSpacing.md),
+          padding: AppSpacing.paddingMD,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
+            borderRadius: AppSpacing.borderRadiusMD,
+          ),
       child: Row(
         children: [
           // Item info
@@ -448,7 +489,7 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
                   style: AppTypography.titleSmall,
                 ),
                 Text(
-                  '\$${cartItem.foodItem.price.toStringAsFixed(2)}',
+                  CurrencyFormatter.formatCRC(cartItem.foodItem.price),
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -487,13 +528,15 @@ class _FoodMenuPageState extends ConsumerState<FoodMenuPage> {
 
           // Item total
           Text(
-            '\$${cartItem.totalPrice.toStringAsFixed(2)}',
+            CurrencyFormatter.formatCRC(cartItem.totalPrice),
             style: AppTypography.titleMedium.copyWith(
               color: AppColors.primary,
             ),
           ),
         ],
       ),
+        );
+      },
     );
   }
 }

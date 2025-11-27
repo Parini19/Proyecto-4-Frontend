@@ -288,15 +288,15 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
             Icon(
               Icons.movie,
               size: 64,
-              color: AppColors.textSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
             const SizedBox(height: 16),
             Text(
-              _searchQuery.isEmpty 
+              _searchQuery.isEmpty
                   ? 'No hay películas en el servidor\n\nAsegúrate de que el backend esté ejecutándose\ny tenga películas en la base de datos.'
                   : 'No se encontraron películas\nque coincidan con "$_searchQuery"',
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -417,7 +417,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                 Text(
                   movie.genre,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -425,12 +425,12 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                 SizedBox(height: AppSpacing.xs),
                 Row(
                   children: [
-                    Icon(Icons.access_time, size: 14, color: AppColors.textTertiary),
+                    Icon(Icons.access_time, size: 14, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
                     SizedBox(width: 4),
                     Text(
                       movie.duration,
                       style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.textTertiary,
+                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                       ),
                     ),
                     Spacer(),
@@ -439,7 +439,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                     Text(
                       movie.rating,
                       style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.textTertiary,
+                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                       ),
                     ),
                   ],
@@ -832,24 +832,28 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
             label: 'Total',
             value: '$totalMovies',
             color: AppColors.primary,
+            isDark: isDark,
           ),
           _buildStatItem(
             icon: Icons.visibility,
             label: 'Mostrando',
             value: '$filteredCount',
             color: AppColors.success,
+            isDark: isDark,
           ),
           _buildStatItem(
             icon: Icons.category,
             label: 'Géneros',
             value: '$genres',
             color: AppColors.warning,
+            isDark: isDark,
           ),
           _buildStatItem(
             icon: Icons.cloud_done,
             label: 'Estado',
             value: 'Conectado',
             color: AppColors.success,
+            isDark: isDark,
           ),
         ],
       ),
@@ -861,6 +865,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
     required String label,
     required String value,
     required Color color,
+    required bool isDark,
   }) {
     return Column(
       children: [
@@ -876,7 +881,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
         Text(
           label,
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
       ],
