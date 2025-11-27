@@ -221,129 +221,53 @@ final bookingProvider = NotifierProvider<BookingNotifier, BookingState>(() {
   return BookingNotifier();
 });
 
-/// Helper function to convert Screening to Showtime with REAL seat configuration
-Future<Showtime> _screeningToShowtime(
-  Screening screening,
-  theaterRoomService,
-  bookingService,
-) async {
-  try {
-    // Get the theater room configuration
-    final theaterRoom = await theaterRoomService.getTheaterRoom(screening.theaterRoomId);
+/// Helper function to convert Screening to Showtime
+Showtime _screeningToShowtime(Screening screening) {
+  // Generate mock seats for the screening
+  final seats = generateMockSeats(
+    rows: 8,
+    seatsPerRow: 12,
+    // Randomly occupy some seats for realism
+    occupiedSeats: _generateRandomOccupiedSeats(),
+  );
 
-    List<Seat> seats;
-    int totalSeats;
-
-    if (theaterRoom != null && theaterRoom.seatConfiguration != null) {
-      // Parse seat configuration
-      final config = theaterRoom.seatConfiguration as Map<String, dynamic>;
-      final rows = config['rows'] as int? ?? 8;
-      final columns = config['columns'] as int? ?? 12;
-      final seatsList = config['seats'] as List<dynamic>? ?? [];
-
-      // Get occupied seats from real bookings
-      final occupiedSeatNumbers = await bookingService.getOccupiedSeats(screening.id);
-
-      // Generate seats from configuration
-      seats = [];
-      for (var seatConfig in seatsList) {
-        final seatMap = seatConfig as Map<String, dynamic>;
-        final row = seatMap['row'] as int;
-        final col = seatMap['col'] as int;
-        final typeStr = seatMap['type'] as String;
-
-        // Skip empty seats
-        if (typeStr == 'empty') continue;
-
-        final seatId = 'R${row}S${col + 1}';
-        final isOccupied = occupiedSeatNumbers.contains(seatId);
-
-        // Map admin seat types to booking seat types
-        SeatType seatType;
-        switch (typeStr) {
-          case 'vip':
-            seatType = SeatType.vip;
-            break;
-          case 'wheelchair':
-          case 'disabled':
-            seatType = SeatType.wheelchair;
-            break;
-          case 'normal':
-          default:
-            seatType = SeatType.regular;
-        }
-
-        seats.add(Seat(
-          id: seatId,
-          row: row,
-          number: col + 1,
-          type: seatType,
-          status: isOccupied ? SeatStatus.occupied : SeatStatus.available,
-        ));
-      }
-
-      totalSeats = seats.length;
-    } else {
-      // Fallback to mock data if no configuration exists
-      print('⚠️ No seat configuration found for room ${screening.theaterRoomId}, using fallback');
-      final occupiedSeats = await bookingService.getOccupiedSeats(screening.id);
-      seats = generateMockSeats(
-        rows: 8,
-        seatsPerRow: 12,
-        occupiedSeats: occupiedSeats,
-      );
-      totalSeats = 96;
-    }
-
-    return Showtime(
-      id: screening.id,
-      movieId: screening.movieId,
-      cinemaHall: screening.theaterRoomId,
-      dateTime: screening.startTime,
-      seats: seats,
-      totalSeats: totalSeats,
-      availableSeats: seats.where((s) => s.status == SeatStatus.available).length,
-    );
-  } catch (e) {
-    print('❌ Error converting screening to showtime: $e');
-    // Fallback to mock data on error
-    final seats = generateMockSeats(rows: 8, seatsPerRow: 12, occupiedSeats: []);
-    return Showtime(
-      id: screening.id,
-      movieId: screening.movieId,
-      cinemaHall: screening.theaterRoomId,
-      dateTime: screening.startTime,
-      seats: seats,
-      totalSeats: 96,
-      availableSeats: seats.where((s) => s.status == SeatStatus.available).length,
-    );
-  }
+  return Showtime(
+    id: screening.id, // Use the real screening ID from backend
+    movieId: screening.movieId,
+    cinemaHall: screening.theaterRoomId,
+    dateTime: screening.startTime,
+    seats: seats,
+    totalSeats: 96,
+    availableSeats: seats.where((s) => s.status == SeatStatus.available).length,
+  );
 }
 
-/// Provider for available showtimes - fetches from backend with REAL seat data
+/// Generate random occupied seats for demo purposes
+List<String> _generateRandomOccupiedSeats() {
+  final random = DateTime.now().millisecondsSinceEpoch % 10;
+  final occupied = <String>[];
+
+  // Add 5-10 random occupied seats
+  for (int i = 0; i < random; i++) {
+    final row = i % 8;
+    final seat = (i * 3) % 12 + 1;
+    occupied.add('R${row}S$seat');
+  }
+
+  return occupied;
+}
+
+/// Provider for available showtimes - fetches from backend
 final showtimesProvider = FutureProvider.family<List<Showtime>, String>((ref, movieId) async {
   try {
     final screeningService = ref.watch(screeningServiceProvider);
-    final theaterRoomService = ref.watch(theaterRoomServiceProvider);
-    final bookingService = ref.watch(bookingServiceProvider);
-
     final screenings = await screeningService.getScreeningsByMovieId(movieId);
 
     // Filter only future screenings
     final futureScreenings = screenings.where((s) => s.isFuture).toList();
 
-    // Convert screenings to showtimes with REAL seat configuration
-    final showtimes = <Showtime>[];
-    for (var screening in futureScreenings.take(5)) {
-      final showtime = await _screeningToShowtime(
-        screening,
-        theaterRoomService,
-        bookingService,
-      );
-      showtimes.add(showtime);
-    }
-
-    return showtimes;
+    // Convert screenings to showtimes
+    return futureScreenings.map((screening) => _screeningToShowtime(screening)).take(5).toList();
   } catch (e) {
     print('Error fetching showtimes: $e');
     // Fallback to mock data if API fails

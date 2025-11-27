@@ -127,4 +127,26 @@ class BookingService {
       throw Exception('Failed to cancel booking: ${e.message}');
     }
   }
+
+  /// Gets occupied seats for a screening
+  Future<List<String>> getOccupiedSeats(String screeningId) async {
+    try {
+      _logger.i('Fetching occupied seats for screening $screeningId');
+
+      final response = await _dio.get('$baseUrl/bookings/occupied-seats/$screeningId');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          final List<dynamic> seatsJson = data['occupiedSeats'];
+          return seatsJson.map((seat) => seat.toString()).toList();
+        }
+      }
+      return [];
+    } on DioException catch (e) {
+      _logger.e('Error fetching occupied seats', error: e);
+      // Return empty list on error to allow graceful degradation
+      return [];
+    }
+  }
 }

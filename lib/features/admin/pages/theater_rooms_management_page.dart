@@ -689,7 +689,7 @@ class _SeatConfiguratorPage extends StatefulWidget {
   State<_SeatConfiguratorPage> createState() => _SeatConfiguratorPageState();
 }
 
-enum SeatType { normal, vip, empty }
+enum SeatType { normal, vip, wheelchair, disabled, empty }
 
 class _Seat {
   final int row;
@@ -815,6 +815,12 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
           seat.type = SeatType.vip;
           break;
         case SeatType.vip:
+          seat.type = SeatType.wheelchair;
+          break;
+        case SeatType.wheelchair:
+          seat.type = SeatType.disabled;
+          break;
+        case SeatType.disabled:
           seat.type = SeatType.empty;
           break;
         case SeatType.empty:
@@ -859,6 +865,8 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
     final normalCount = _seats.where((s) => s.type == SeatType.normal).length;
     final vipCount = _seats.where((s) => s.type == SeatType.vip).length;
     final emptyCount = _seats.where((s) => s.type == SeatType.empty).length;
+    final wheelchairCount = _seats.where((s) => s.type == SeatType.wheelchair).length;
+    final disabledCount = _seats.where((s) => s.type == SeatType.disabled).length;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -932,13 +940,15 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
                     runSpacing: AppSpacing.sm,
                     children: [
                       _buildLegendItem('Normal', AppColors.primary, normalCount, isDark),
+                      _buildLegendItem('Discapacitados', AppColors.error, wheelchairCount, isDark),
+                      _buildLegendItem('Deshabilitado', AppColors.textSecondary, disabledCount, isDark),
                       _buildLegendItem('VIP', AppColors.warning, vipCount, isDark),
                       _buildLegendItem('Vacío', isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant, emptyCount, isDark),
                     ],
                   ),
                   SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Haz clic en un asiento para cambiar su tipo: Normal → VIP → Vacío',
+                    'Haz clic en un asiento para cambiar su tipo: Normal → VIP → Discapacitados → Deshabilitado → Vacío',
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -1079,6 +1089,14 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
       case SeatType.vip:
         seatColor = AppColors.warning;
         icon = Icons.weekend;
+        break;
+      case SeatType.wheelchair:
+        seatColor = AppColors.error;
+        icon = Icons.accessible;
+        break;
+      case SeatType.disabled:
+        seatColor = AppColors.textSecondary;
+        icon = Icons.not_accessible;
         break;
       case SeatType.empty:
         seatColor = isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;

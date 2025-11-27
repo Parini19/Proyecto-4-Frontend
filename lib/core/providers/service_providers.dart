@@ -8,6 +8,7 @@ import '../services/movie_service.dart';
 import '../services/screening_service.dart';
 import '../services/audit_log_service.dart';
 import '../services/reports_service.dart';
+import '../services/theater_rooms_service.dart';
 
 /// Dio provider - simple configuration for web and mobile
 final dioProvider = Provider<Dio>((ref) {
@@ -64,4 +65,9 @@ final auditLogServiceProvider = Provider<AuditLogService>((ref) {
 final reportsServiceProvider = Provider<ReportsService>((ref) {
   final dio = ref.watch(dioProvider);
   return ReportsService(dio);
+});
+
+/// Theater Rooms service provider
+final theaterRoomServiceProvider = Provider<TheaterRoomsService>((ref) {
+  return TheaterRoomsService();
 });

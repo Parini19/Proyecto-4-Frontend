@@ -190,12 +190,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage>
         ),
       ),
       child: Row(
+        children: [
           IconButton(
             icon: Icon(Icons.arrow_back, color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
             onPressed: () => Navigator.pop(context),
             tooltip: 'Volver al panel',
           ),
-        children: [
           Icon(Icons.analytics, color: AppColors.primary, size: 32),
           const SizedBox(width: 16),
           Expanded(
