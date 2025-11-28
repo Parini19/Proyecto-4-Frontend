@@ -297,7 +297,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage>
           _buildStatCard('Reservas Totales', _dashboardSummary!.totalBookings.toString(), Icons.confirmation_number, Colors.teal, isDark),
           _buildStatCard('Reservas Hoy', _dashboardSummary!.todayBookings.toString(), Icons.today, Colors.pink, isDark),
           _buildStatCard('Usuarios', _dashboardSummary!.totalUsers.toString(), Icons.people, Colors.indigo, isDark),
-          _buildStatCard('Ingresos Hoy', '\$${_dashboardSummary!.todayRevenue.toStringAsFixed(2)}', Icons.attach_money, Colors.green, isDark),
+          _buildStatCard('Ingresos Hoy', '\$${_dashboardSummary!.todayRevenue.toStringAsFixed(2)}', Icons.account_balance_wallet, Colors.green, isDark),
         ],
       ),
     );
@@ -362,7 +362,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage>
           Row(
             children: [
               Expanded(
-                child: _buildStatCard('Ventas Totales', '\$${_salesReport!.totalSales.toStringAsFixed(2)}', Icons.attach_money, Colors.green, isDark),
+                child: _buildStatCard('Ventas Totales', '\$${_salesReport!.totalSales.toStringAsFixed(2)}', Icons.account_balance_wallet, Colors.green, isDark),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -551,7 +551,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage>
           Row(
             children: [
               Expanded(
-                child: _buildStatCard('Ingresos Totales', '\$${_revenueReport!.totalRevenue.toStringAsFixed(2)}', Icons.attach_money, Colors.green, isDark),
+                child: _buildStatCard('Ingresos Totales', '\$${_revenueReport!.totalRevenue.toStringAsFixed(2)}', Icons.account_balance_wallet, Colors.green, isDark),
               ),
               const SizedBox(width: 16),
               Expanded(

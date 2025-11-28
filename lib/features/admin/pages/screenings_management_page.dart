@@ -480,7 +480,7 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
             SizedBox(height: AppSpacing.xs),
             Row(
               children: [
-                Icon(Icons.monetization_on, size: 16, color: AppColors.success),
+                Icon(Icons.account_balance_wallet, size: 16, color: AppColors.success),
                 SizedBox(width: AppSpacing.xs),
                 Text(
                   '₡${screening.price.toStringAsFixed(0)}',
@@ -623,7 +623,7 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
                     decoration: InputDecoration(
                       labelText: 'Precio (₡) *',
                       hintText: 'Ej: 4500',
-                      prefixIcon: Icon(Icons.attach_money),
+                      prefixIcon: Icon(Icons.account_balance_wallet),
                       filled: true,
                       fillColor: isDark
                           ? AppColors.darkSurfaceVariant

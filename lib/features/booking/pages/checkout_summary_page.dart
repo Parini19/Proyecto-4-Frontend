@@ -141,14 +141,16 @@ class _CheckoutSummaryPageState extends ConsumerState<CheckoutSummaryPage> {
           seatNumbers: bookingState.selectedSeats.map((s) => s.seatLabel).toList(),
           ticketPrice: ticketPrice,
           foodOrderId: null, // TODO: Implement food order ID if needed
-          subtotalFood: bookingState.foodTotal,
         );
 
         // Create booking
         final booking = await bookingService.createBooking(request);
 
-        // Save booking ID to state
-        ref.read(bookingProvider.notifier).setBookingId(booking.id);
+        // Save booking ID and total from backend to state
+        ref.read(bookingProvider.notifier).setBookingDetails(
+          booking.id,
+          booking.total,
+        );
 
         // Navigate to payment page
         if (mounted) {

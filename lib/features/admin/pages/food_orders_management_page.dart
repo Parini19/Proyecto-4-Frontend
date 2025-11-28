@@ -752,7 +752,7 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
                     label: 'Precio Total *',
                     controller: totalPriceController,
                     hint: '0.00',
-                    prefixIcon: Icons.attach_money,
+                    prefixIcon: Icons.account_balance_wallet,
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                   ),
                   SizedBox(height: AppSpacing.md),

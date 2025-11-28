@@ -222,7 +222,7 @@ class MyTicketsPage extends ConsumerWidget {
                         SizedBox(height: 4),
                         _buildInfoRow(Icons.confirmation_number, '${booking.ticketQuantity} ${booking.ticketQuantity > 1 ? "boletos" : "boleto"}', isDark),
                         SizedBox(height: 4),
-                        _buildInfoRow(Icons.attach_money, '₡${booking.total.toStringAsFixed(0)}', isDark),
+                        _buildInfoRow(Icons.account_balance_wallet, '₡${booking.total.toStringAsFixed(0)}', isDark),
                         SizedBox(height: 4),
                         _buildInfoRow(Icons.calendar_today, _formatDate(booking.createdAt), isDark),
                       ],

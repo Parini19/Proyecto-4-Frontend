@@ -80,9 +80,9 @@ class CreateBookingRequest {
   final String userId;
   final String screeningId;
   final List<String> seatNumbers;
+  final int ticketQuantity;
   final double ticketPrice;
   final String? foodOrderId;
-  final double subtotalFood;
 
   CreateBookingRequest({
     required this.userId,
@@ -90,17 +90,16 @@ class CreateBookingRequest {
     required this.seatNumbers,
     required this.ticketPrice,
     this.foodOrderId,
-    this.subtotalFood = 0.0,
-  });
+  }) : ticketQuantity = seatNumbers.length;
 
   Map<String, dynamic> toJson() {
     return {
       'userId': userId,
       'screeningId': screeningId,
       'seatNumbers': seatNumbers,
+      'ticketQuantity': ticketQuantity,
       'ticketPrice': ticketPrice,
       'foodOrderId': foodOrderId,
-      'subtotalFood': subtotalFood,
     };
   }
 }

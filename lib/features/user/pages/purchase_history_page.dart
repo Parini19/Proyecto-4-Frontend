@@ -92,7 +92,7 @@ class PurchaseHistoryPage extends ConsumerWidget {
                     child: _buildStatCard(
                       'Total Gastado',
                       '₡${totalSpent.toStringAsFixed(0)}',
-                      Icons.attach_money,
+                      Icons.account_balance_wallet,
                       AppColors.success,
                       isDark,
                     ),

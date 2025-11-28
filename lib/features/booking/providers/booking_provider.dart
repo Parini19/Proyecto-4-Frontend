@@ -15,6 +15,7 @@ class BookingState {
   final String? bookingId;
   final String? promoCode;
   final double promoDiscount;
+  final double? bookingTotal; // Total from backend booking
 
   const BookingState({
     this.selectedMovie,
@@ -24,6 +25,7 @@ class BookingState {
     this.bookingId,
     this.promoCode,
     this.promoDiscount = 0.0,
+    this.bookingTotal,
   });
 
   BookingState copyWith({
@@ -34,6 +36,7 @@ class BookingState {
     String? bookingId,
     String? promoCode,
     double? promoDiscount,
+    double? bookingTotal,
   }) {
     return BookingState(
       selectedMovie: selectedMovie ?? this.selectedMovie,
@@ -43,6 +46,7 @@ class BookingState {
       bookingId: bookingId ?? this.bookingId,
       promoCode: promoCode ?? this.promoCode,
       promoDiscount: promoDiscount ?? this.promoDiscount,
+      bookingTotal: bookingTotal ?? this.bookingTotal,
     );
   }
 
@@ -56,7 +60,8 @@ class BookingState {
 
   double get subtotal => seatsTotal + foodTotal;
 
-  double get totalPrice => (subtotal - promoDiscount).clamp(0, double.infinity);
+  // Use booking total from backend if available, otherwise calculate locally
+  double get totalPrice => bookingTotal ?? (subtotal - promoDiscount).clamp(0, double.infinity);
 
   int get seatCount => selectedSeats.length;
 
@@ -114,6 +119,13 @@ class BookingNotifier extends Notifier<BookingState> {
 
   void setBookingId(String bookingId) {
     state = state.copyWith(bookingId: bookingId);
+  }
+
+  void setBookingDetails(String bookingId, double total) {
+    state = state.copyWith(
+      bookingId: bookingId,
+      bookingTotal: total,
+    );
   }
 
   void reset() {

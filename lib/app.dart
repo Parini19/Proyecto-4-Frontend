@@ -319,7 +319,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final userService = UserService(AppConfig.apiBaseUrl);
+      final userService = UserService();
       final response = await userService.login(
         _emailController.text.trim(),
         _passwordController.text,
