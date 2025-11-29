@@ -470,8 +470,8 @@ class MovieDetailsPage extends ConsumerWidget {
   }
 
   Widget _buildShowtimes(BuildContext context, WidgetRef ref, bool isDark, bool isDesktop, bool isTablet) {
-    // Si la película es de próximos estrenos (isNew == false), mostrar mensaje en lugar de horarios
-    if (movie.isNew == false) {
+    // Si la película es de próximos estrenos (isNew == true), mostrar mensaje en lugar de horarios
+    if (movie.isNew == true) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
         child: Center(
@@ -532,7 +532,7 @@ class MovieDetailsPage extends ConsumerWidget {
       );
     }
 
-    // Si la película está en cartelera (isNew == true), mostrar horarios normalmente
+    // Si la película está en cartelera (isNew == false), mostrar horarios normalmente
     final showtimesAsync = ref.watch(showtimesProvider(movie.id));
 
     return showtimesAsync.when(
@@ -664,6 +664,25 @@ class MovieDetailsPage extends ConsumerWidget {
                 ],
               ),
               SizedBox(height: 4),
+              // Cinema Name
+              if (showtime.cinemaName != null) ...[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.business, color: Colors.white70, size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      showtime.cinemaName!,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 2),
+              ],
               // Sala
               Row(
                 mainAxisSize: MainAxisSize.min,

@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/models/audit_log.dart';
 import '../../../core/services/audit_log_service.dart';
+import '../../../core/services/config_service.dart';
 import '../../../core/providers/service_providers.dart';
 
 class AuditLogManagementPage extends ConsumerStatefulWidget {
@@ -21,12 +22,16 @@ class _AuditLogManagementPageState
   List<AuditLog> _logs = [];
   List<AuditLog> _filteredLogs = [];
   bool _isLoading = true;
+  bool _auditLoggingEnabled = false;
+  bool _isTogglingAudit = false;
   String _searchQuery = '';
   String? _selectedAction;
   String? _selectedEntityType;
   String? _selectedSeverity;
   DateTime? _startDate;
   DateTime? _endDate;
+
+  final ConfigService _configService = ConfigService();
 
   final List<String> _actions = [
     'All',
@@ -52,6 +57,67 @@ class _AuditLogManagementPageState
   void initState() {
     super.initState();
     _loadAuditLogs();
+    _loadAuditLoggingStatus();
+  }
+
+  Future<void> _loadAuditLoggingStatus() async {
+    try {
+      final enabled = await _configService.getAuditLoggingStatus();
+      setState(() {
+        _auditLoggingEnabled = enabled;
+      });
+    } catch (e) {
+      print('Error loading audit logging status: $e');
+    }
+  }
+
+  Future<void> _toggleAuditLogging(bool value) async {
+    setState(() => _isTogglingAudit = true);
+
+    try {
+      final success = await _configService.setAuditLogging(value);
+
+      if (success) {
+        setState(() {
+          _auditLoggingEnabled = value;
+          _isTogglingAudit = false;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                value
+                    ? '✅ Auditoría ACTIVADA - Los logs se guardarán en Firestore'
+                    : '⚠️ Auditoría DESACTIVADA - No se guardarán logs',
+              ),
+              backgroundColor: value ? AppColors.success : AppColors.warning,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        setState(() => _isTogglingAudit = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error al cambiar estado de auditoría'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isTogglingAudit = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadAuditLogs() async {
@@ -189,6 +255,64 @@ class _AuditLogManagementPageState
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Toggle de auditoría
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _auditLoggingEnabled ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _auditLoggingEnabled ? AppColors.success : AppColors.warning,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _auditLoggingEnabled ? Icons.check_circle : Icons.warning,
+                  color: _auditLoggingEnabled ? AppColors.success : AppColors.warning,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Auditoría',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                    Text(
+                      _auditLoggingEnabled ? 'ACTIVADA' : 'DESACTIVADA',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: _auditLoggingEnabled ? AppColors.success : AppColors.warning,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                _isTogglingAudit
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Switch(
+                        value: _auditLoggingEnabled,
+                        onChanged: _toggleAuditLogging,
+                        activeColor: AppColors.success,
+                      ),
+              ],
             ),
           ),
         ],

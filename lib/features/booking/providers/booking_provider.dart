@@ -5,6 +5,7 @@ import '../../../core/models/seat.dart';
 import '../../../core/models/food_item.dart';
 import '../../../core/models/screening.dart';
 import '../../../core/providers/service_providers.dart';
+import '../../../core/providers/cinema_provider.dart';
 
 /// State for the current booking flow
 class BookingState {
@@ -238,10 +239,14 @@ Future<Showtime> _screeningToShowtime(
   Screening screening,
   theaterRoomService,
   bookingService,
+  cinemaService,
 ) async {
   try {
     // Get the theater room configuration
-    final theaterRoom = await theaterRoomService.getTheaterRoom(screening.theaterRoomId);
+    final theaterRoom = await theaterRoomService.getTheaterRoomById(screening.theaterRoomId);
+
+    // Get the cinema information
+    final cinema = await cinemaService.getCinemaById(screening.cinemaId);
 
     List<Seat> seats;
     int totalSeats;
@@ -310,7 +315,8 @@ Future<Showtime> _screeningToShowtime(
     return Showtime(
       id: screening.id,
       movieId: screening.movieId,
-      cinemaHall: screening.theaterRoomId,
+      cinemaHall: theaterRoom?.name ?? 'Sala Desconocida',
+      cinemaName: cinema?.name,
       dateTime: screening.startTime,
       seats: seats,
       totalSeats: totalSeats,
@@ -323,7 +329,8 @@ Future<Showtime> _screeningToShowtime(
     return Showtime(
       id: screening.id,
       movieId: screening.movieId,
-      cinemaHall: screening.theaterRoomId,
+      cinemaHall: 'Sala Desconocida',
+      cinemaName: null,
       dateTime: screening.startTime,
       seats: seats,
       totalSeats: 96,
@@ -338,6 +345,7 @@ final showtimesProvider = FutureProvider.family<List<Showtime>, String>((ref, mo
     final screeningService = ref.watch(screeningServiceProvider);
     final theaterRoomService = ref.watch(theaterRoomServiceProvider);
     final bookingService = ref.watch(bookingServiceProvider);
+    final cinemaService = ref.watch(cinemaLocationServiceProvider);
 
     final screenings = await screeningService.getScreeningsByMovieId(movieId);
 
@@ -351,6 +359,7 @@ final showtimesProvider = FutureProvider.family<List<Showtime>, String>((ref, mo
         screening,
         theaterRoomService,
         bookingService,
+        cinemaService,
       );
       showtimes.add(showtime);
     }

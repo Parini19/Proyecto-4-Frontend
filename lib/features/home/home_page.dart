@@ -2403,6 +2403,26 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ],
                   ),
                 ),
+                if (selectedCinema != null) ...[
+                  SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () {
+                      ref.read(selectedCinemaProvider.notifier).clearSelection();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Filtro de cine eliminado'),
+                          backgroundColor: AppColors.info,
+                          behavior: SnackBarBehavior.floating,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.close, color: Colors.white, size: 22),
+                    tooltip: 'Limpiar filtro',
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(),
+                  ),
+                ],
                 Icon(
                   Icons.arrow_forward_ios,
                   color: Colors.white,

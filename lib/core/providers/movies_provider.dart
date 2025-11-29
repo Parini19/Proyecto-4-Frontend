@@ -24,18 +24,20 @@ final moviesProvider = FutureProvider<List<MovieModel>>((ref) async {
 /// Provider for movies filtered by category
 final nowPlayingMoviesProvider = FutureProvider<List<MovieModel>>((ref) async {
   final movies = await ref.watch(moviesProvider.future);
-  return movies.where((m) => m.isNew == true).toList();
+  // En Cartelera = Already released movies (isNew = false)
+  return movies.where((m) => m.isNew == false).toList();
 });
 
 final upcomingMoviesProvider = FutureProvider<List<MovieModel>>((ref) async {
   final movies = await ref.watch(moviesProvider.future);
-  return movies.where((m) => m.isNew == false).toList();
+  // Próximos Estrenos = New/upcoming movies (isNew = true)
+  return movies.where((m) => m.isNew == true).toList();
 });
 
 final popularMoviesProvider = FutureProvider<List<MovieModel>>((ref) async {
   final movies = await ref.watch(moviesProvider.future);
-  // Only include movies currently playing (isNew=true) to avoid duplicates with upcoming
-  final nowPlayingMovies = movies.where((m) => m.isNew == true).toList();
+  // Only include movies currently playing (isNew=false) to avoid duplicates with upcoming
+  final nowPlayingMovies = movies.where((m) => m.isNew == false).toList();
   // Sort by rating and take top movies
   nowPlayingMovies.sort((a, b) {
     final ratingA = double.tryParse(a.rating) ?? 0;
@@ -69,19 +71,23 @@ final moviesFilteredByCinemaProvider = FutureProvider<List<MovieModel>>((ref) as
 /// Provider for now playing movies filtered by selected cinema
 final nowPlayingFilteredByCinemaProvider = FutureProvider<List<MovieModel>>((ref) async {
   final filteredMovies = await ref.watch(moviesFilteredByCinemaProvider.future);
-  return filteredMovies.where((m) => m.isNew == true).toList();
+  // En Cartelera = Already released movies (isNew = false)
+  return filteredMovies.where((m) => m.isNew == false).toList();
 });
 
 /// Provider for upcoming movies filtered by selected cinema
+/// NOTE: Upcoming movies don't have screenings yet, so they are NOT filtered by cinema
 final upcomingFilteredByCinemaProvider = FutureProvider<List<MovieModel>>((ref) async {
-  final filteredMovies = await ref.watch(moviesFilteredByCinemaProvider.future);
-  return filteredMovies.where((m) => m.isNew == false).toList();
+  // Próximos Estrenos = New/upcoming movies (isNew = true)
+  // These movies don't have screenings, so we show all of them regardless of cinema selection
+  return await ref.watch(upcomingMoviesProvider.future);
 });
 
 /// Provider for popular movies filtered by selected cinema
 final popularFilteredByCinemaProvider = FutureProvider<List<MovieModel>>((ref) async {
   final filteredMovies = await ref.watch(moviesFilteredByCinemaProvider.future);
-  final nowPlayingMovies = filteredMovies.where((m) => m.isNew == true).toList();
+  // Más Populares = Only now playing movies (isNew = false)
+  final nowPlayingMovies = filteredMovies.where((m) => m.isNew == false).toList();
 
   nowPlayingMovies.sort((a, b) {
     final ratingA = double.tryParse(a.rating) ?? 0;
