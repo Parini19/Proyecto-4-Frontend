@@ -55,6 +55,7 @@ class PaymentRequest {
   final String expiryMonth;
   final String expiryYear;
   final String cvv;
+  final String? confirmationEmail; // Email para enviar confirmaciones
 
   PaymentRequest({
     required this.bookingId,
@@ -64,6 +65,7 @@ class PaymentRequest {
     required this.expiryMonth,
     required this.expiryYear,
     required this.cvv,
+    this.confirmationEmail,
   });
 
   Map<String, dynamic> toJson() {
@@ -75,6 +77,7 @@ class PaymentRequest {
       'expiryMonth': expiryMonth,
       'expiryYear': expiryYear,
       'cvv': cvv,
+      'confirmationEmail': confirmationEmail,
     };
   }
 }

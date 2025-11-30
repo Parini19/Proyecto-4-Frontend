@@ -24,7 +24,6 @@ class _CinemaFormPageState extends State<CinemaFormPage> {
   late TextEditingController _cityController;
   late TextEditingController _addressController;
   late TextEditingController _phoneController;
-  late TextEditingController _imageUrlController;
   bool _isActive = true;
   bool _isLoading = false;
 
@@ -37,7 +36,6 @@ class _CinemaFormPageState extends State<CinemaFormPage> {
     _cityController = TextEditingController(text: widget.cinema?.city ?? '');
     _addressController = TextEditingController(text: widget.cinema?.address ?? '');
     _phoneController = TextEditingController(text: widget.cinema?.phone ?? '');
-    _imageUrlController = TextEditingController(text: widget.cinema?.imageUrl ?? '');
     _isActive = widget.cinema?.isActive ?? true;
   }
 
@@ -47,7 +45,6 @@ class _CinemaFormPageState extends State<CinemaFormPage> {
     _cityController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -65,7 +62,6 @@ class _CinemaFormPageState extends State<CinemaFormPage> {
         city: _cityController.text.trim(),
         address: _addressController.text.trim(),
         phone: _phoneController.text.trim(),
-        imageUrl: _imageUrlController.text.trim().isEmpty ? null : _imageUrlController.text.trim(),
         isActive: _isActive,
         createdAt: widget.cinema?.createdAt,
         updatedAt: widget.cinema?.updatedAt,
@@ -166,12 +162,6 @@ class _CinemaFormPageState extends State<CinemaFormPage> {
                 }
                 return null;
               },
-            ),
-            SizedBox(height: AppSpacing.sm),
-            CinemaTextField(
-              controller: _imageUrlController,
-              label: 'URL de Imagen (opcional)',
-              hint: 'https://ejemplo.com/imagen.jpg',
             ),
           ],
         ),

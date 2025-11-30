@@ -7,6 +7,7 @@ import '../../../core/widgets/cinema_button.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../providers/booking_provider.dart';
+import '../../user/pages/my_tickets_page.dart';
 
 class ConfirmationPage extends ConsumerWidget {
   final String bookingId;
@@ -25,6 +26,7 @@ class ConfirmationPage extends ConsumerWidget {
     final bookingState = ref.watch(bookingProvider);
     final authService = AuthService();
     final userEmail = authService.currentUser?.email ?? 'usuario@ejemplo.com';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: SafeArea(
@@ -87,7 +89,7 @@ class ConfirmationPage extends ConsumerWidget {
                       Container(
                         padding: AppSpacing.pagePadding,
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurface,
                           borderRadius: AppSpacing.borderRadiusMD,
                           border: Border.all(
                             color: AppColors.primary.withOpacity(0.3),
@@ -96,11 +98,11 @@ class ConfirmationPage extends ConsumerWidget {
                         ),
                         child: Column(
                           children: [
-                            _buildInfoRow('Código de Reserva', bookingId.substring(0, 8).toUpperCase()),
-                            Divider(height: AppSpacing.lg, color: AppColors.border),
-                            _buildInfoRow('Número de Factura', invoiceNumber),
-                            Divider(height: AppSpacing.lg, color: AppColors.border),
-                            _buildInfoRow('Boletos Generados', ticketsGenerated.toString()),
+                            _buildInfoRow('Código de Reserva', bookingId.substring(0, 8).toUpperCase(), isDark),
+                            Divider(height: AppSpacing.lg, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            _buildInfoRow('Número de Factura', invoiceNumber, isDark),
+                            Divider(height: AppSpacing.lg, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            _buildInfoRow('Boletos Generados', ticketsGenerated.toString(), isDark),
                           ],
                         ),
                       ),
@@ -112,15 +114,18 @@ class ConfirmationPage extends ConsumerWidget {
                         _buildDetailRow(
                           'Película',
                           bookingState.selectedMovie!.title,
+                          isDark,
                         ),
                         if (bookingState.selectedShowtime != null) ...[
                           _buildDetailRow(
                             'Sala',
                             bookingState.selectedShowtime!.cinemaHall,
+                            isDark,
                           ),
                           _buildDetailRow(
                             'Horario',
                             bookingState.selectedShowtime!.timeFormatted,
+                            isDark,
                           ),
                         ],
                         _buildDetailRow(
@@ -128,10 +133,12 @@ class ConfirmationPage extends ConsumerWidget {
                           bookingState.selectedSeats
                               .map((s) => s.seatLabel)
                               .join(', '),
+                          isDark,
                         ),
                         _buildDetailRow(
                           'Total Pagado',
                           CurrencyFormatter.formatCRC(bookingState.totalPrice),
+                          isDark,
                         ),
                       ],
 
@@ -178,8 +185,15 @@ class ConfirmationPage extends ConsumerWidget {
                     isFullWidth: true,
                     size: ButtonSize.large,
                     onPressed: () {
+                      // Reset booking state
+                      ref.read(bookingProvider.notifier).reset();
+                      // Pop all routes until home
                       Navigator.of(context).popUntil((route) => route.isFirst);
-                      // TODO: Navigate to tickets tab
+                      // Navigate to tickets page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MyTicketsPage()),
+                      );
                     },
                   ),
                   SizedBox(height: AppSpacing.md),
@@ -204,20 +218,20 @@ class ConfirmationPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
         Text(
           value,
           style: AppTypography.titleMedium.copyWith(
-            color: AppColors.textPrimary,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -225,13 +239,17 @@ class ConfirmationPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, bool isDark) {
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
       padding: AppSpacing.pagePadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
         borderRadius: AppSpacing.borderRadiusMD,
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -239,13 +257,17 @@ class ConfirmationPage extends ConsumerWidget {
           Text(
             label,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+              fontWeight: FontWeight.w600,
             ),
           ),
           Flexible(
             child: Text(
               value,
-              style: AppTypography.titleMedium,
+              style: AppTypography.titleMedium.copyWith(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.end,
             ),
           ),

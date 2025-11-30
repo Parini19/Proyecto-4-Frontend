@@ -30,7 +30,6 @@ class _CinemaWizardPageState extends State<CinemaWizardPage> {
   final _cityController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _imageUrlController = TextEditingController();
 
   // Step 2: Theater Rooms
   final List<TheaterRoomData> _rooms = [];
@@ -44,7 +43,6 @@ class _CinemaWizardPageState extends State<CinemaWizardPage> {
     _cityController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -62,7 +60,6 @@ class _CinemaWizardPageState extends State<CinemaWizardPage> {
         city: _cityController.text.trim(),
         address: _addressController.text.trim(),
         phone: _phoneController.text.trim(),
-        imageUrl: _imageUrlController.text.trim().isEmpty ? null : _imageUrlController.text.trim(),
         isActive: true,
       );
 
@@ -318,12 +315,6 @@ class _CinemaWizardPageState extends State<CinemaWizardPage> {
                 }
                 return null;
               },
-            ),
-            SizedBox(height: AppSpacing.sm),
-            CinemaTextField(
-              controller: _imageUrlController,
-              label: 'URL de Imagen (opcional)',
-              hint: 'https://ejemplo.com/imagen.jpg',
             ),
           ],
         ),

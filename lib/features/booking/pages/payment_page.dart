@@ -936,6 +936,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
         expiryMonth: expiryMonth,
         expiryYear: expiryYear,
         cvv: _cvvController.text,
+        confirmationEmail: _emailController.text.trim().isNotEmpty
+            ? _emailController.text.trim()
+            : null,
       );
 
       // Process payment

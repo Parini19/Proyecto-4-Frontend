@@ -6,7 +6,6 @@ class CinemaLocation {
   final String city;
   final String address;
   final String phone;
-  final String? imageUrl;
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -17,7 +16,6 @@ class CinemaLocation {
     required this.city,
     required this.address,
     required this.phone,
-    this.imageUrl,
     this.isActive = true,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -32,7 +30,6 @@ class CinemaLocation {
       city: json['city'] ?? '',
       address: json['address'] ?? '',
       phone: json['phone'] ?? '',
-      imageUrl: json['imageUrl'],
       isActive: json['isActive'] ?? true,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
@@ -51,7 +48,6 @@ class CinemaLocation {
       'city': city,
       'address': address,
       'phone': phone,
-      'imageUrl': imageUrl,
       'isActive': isActive,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -65,7 +61,6 @@ class CinemaLocation {
     String? city,
     String? address,
     String? phone,
-    String? imageUrl,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -76,7 +71,6 @@ class CinemaLocation {
       city: city ?? this.city,
       address: address ?? this.address,
       phone: phone ?? this.phone,
-      imageUrl: imageUrl ?? this.imageUrl,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
