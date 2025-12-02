@@ -794,7 +794,6 @@ class _FoodComboDialogState extends State<_FoodComboDialog> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  final _imageUrlController = TextEditingController();
   final _categoryController = TextEditingController();
   final _itemsController = TextEditingController();
   bool _isAvailable = true;
@@ -806,7 +805,6 @@ class _FoodComboDialogState extends State<_FoodComboDialog> {
       _nameController.text = widget.combo!.name;
       _descriptionController.text = widget.combo!.description;
       _priceController.text = widget.combo!.price.toString();
-      _imageUrlController.text = widget.combo!.imageUrl;
       _categoryController.text = widget.combo!.category;
       _itemsController.text = widget.combo!.items.join(', ');
       _isAvailable = widget.combo!.isAvailable;
@@ -928,12 +926,6 @@ class _FoodComboDialogState extends State<_FoodComboDialog> {
                 label: 'Items del combo (separados por comas)',
                 maxLines: 2,
               ),
-              SizedBox(height: AppSpacing.md),
-
-              CinemaTextField(
-                controller: _imageUrlController,
-                label: 'URL de la imagen',
-              ),
               SizedBox(height: AppSpacing.xl),
 
               Row(
@@ -971,7 +963,7 @@ class _FoodComboDialogState extends State<_FoodComboDialog> {
         description: _descriptionController.text.trim(),
         price: double.parse(_priceController.text),
         items: items,
-        imageUrl: _imageUrlController.text.trim(),
+        imageUrl: '',
         category: _categoryController.text.trim(),
         isAvailable: _isAvailable,
       );
@@ -986,7 +978,6 @@ class _FoodComboDialogState extends State<_FoodComboDialog> {
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
-    _imageUrlController.dispose();
     _categoryController.dispose();
     _itemsController.dispose();
     super.dispose();

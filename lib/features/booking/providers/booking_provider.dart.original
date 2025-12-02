@@ -253,31 +253,11 @@ Future<Showtime> _screeningToShowtime(
     int totalSeats;
 
     if (theaterRoom != null && theaterRoom.seatConfiguration != null) {
-      // Parse seat configuration - handle both String and Map
-      Map<String, dynamic>? config;
-
-      if (theaterRoom.seatConfiguration is String) {
-        // Parse JSON string
-        try {
-          config = jsonDecode(theaterRoom.seatConfiguration as String) as Map<String, dynamic>;
-          print('✅ Parsed seatConfiguration from JSON string');
-        } catch (e) {
-          print('❌ Error parsing JSON string: $e');
-          config = null;
-        }
-      } else if (theaterRoom.seatConfiguration is Map) {
-        config = theaterRoom.seatConfiguration as Map<String, dynamic>;
-        print('✅ seatConfiguration already a Map');
-      } else {
-        config = null;
-      }
-
-      if (config != null) {
-        final rows = config['rows'] as int? ?? 8;
-        final columns = config['columns'] as int? ?? 12;
-        final seatsList = config['seats'] as List<dynamic>? ?? [];
-
-        print('🔍 DEBUG: Parsing ${seatsList.length} seats from configuration (${rows}x${columns})');
+      // Parse seat configuration
+      final config = theaterRoom.seatConfiguration as Map<String, dynamic>;
+      final rows = config['rows'] as int? ?? 8;
+      final columns = config['columns'] as int? ?? 12;
+      final seatsList = config['seats'] as List<dynamic>? ?? [];
 
       // Get occupied seats from real bookings
       final occupiedSeatNumbers = await bookingService.getOccupiedSeats(screening.id);
@@ -290,6 +270,8 @@ Future<Showtime> _screeningToShowtime(
         final col = seatMap['col'] as int;
         final typeStr = seatMap['type'] as String;
 
+        // Skip empty seats
+        if (typeStr == 'empty') continue;
 
         final seatId = 'R${row}S${col + 1}';
         final isOccupied = occupiedSeatNumbers.contains(seatId);
@@ -304,9 +286,6 @@ Future<Showtime> _screeningToShowtime(
           case 'disabled':
             seatType = SeatType.wheelchair;
             break;
-          case 'empty':
-            seatType = SeatType.empty;
-            break;
           case 'normal':
           default:
             seatType = SeatType.regular;
@@ -317,23 +296,11 @@ Future<Showtime> _screeningToShowtime(
           row: row,
           number: col + 1,
           type: seatType,
-          status: seatType == SeatType.empty ? SeatStatus.occupied : (isOccupied ? SeatStatus.occupied : SeatStatus.available),
+          status: isOccupied ? SeatStatus.occupied : SeatStatus.available,
         ));
       }
 
       totalSeats = seats.length;
-      }
-       else {
-        // Config parsing failed, use fallback
-        print('⚠️ Invalid seat configuration format, using fallback');
-        final occupiedSeats = await bookingService.getOccupiedSeats(screening.id);
-        seats = generateMockSeats(
-          rows: 8,
-          seatsPerRow: 12,
-          occupiedSeats: occupiedSeats,
-        );
-        totalSeats = 96;
-      }
     } else {
       // Fallback to mock data if no configuration exists
       print('⚠️ No seat configuration found for room ${screening.theaterRoomId}, using fallback');

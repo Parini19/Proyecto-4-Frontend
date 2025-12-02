@@ -49,7 +49,12 @@ class _SeatWidgetState extends State<SeatWidget> with SingleTickerProviderStateM
     bool isInteractive = true;
     List<BoxShadow>? shadows;
 
-    if (widget.isSelected) {
+    // Special handling for empty seats (aisles)
+    if (widget.seat.type == SeatType.empty) {
+      seatColor = Colors.grey.shade300;
+      icon = Icons.more_horiz;
+      isInteractive = false;
+    } else if (widget.isSelected) {
       seatColor = AppColors.primary;
       shadows = AppColors.glowShadow; // Neon glow effect
     } else {
@@ -70,7 +75,7 @@ class _SeatWidgetState extends State<SeatWidget> with SingleTickerProviderStateM
       }
     }
 
-    // Wheelchair icon
+    // Wheelchair icon (only for wheelchair type, not empty)
     if (widget.seat.type == SeatType.wheelchair &&
         widget.seat.status != SeatStatus.occupied) {
       icon = Icons.accessible;
@@ -140,6 +145,8 @@ class _SeatWidgetState extends State<SeatWidget> with SingleTickerProviderStateM
         return AppColors.vip; // Purple/Gold
       case SeatType.wheelchair:
         return AppColors.info; // Blue
+      case SeatType.empty:
+        return Colors.transparent; // Transparent for aisles
     }
   }
 }

@@ -676,6 +676,8 @@ class _CheckoutSummaryPageState extends ConsumerState<CheckoutSummaryPage> {
         return AppColors.warning;
       case SeatType.wheelchair:
         return AppColors.info;
+      case SeatType.empty:
+        return Colors.grey;
     }
   }
 
@@ -687,6 +689,8 @@ class _CheckoutSummaryPageState extends ConsumerState<CheckoutSummaryPage> {
         return 'VIP';
       case SeatType.wheelchair:
         return 'Accesible';
+      case SeatType.empty:
+        return 'Pasillo';
     }
   }
 }

@@ -115,7 +115,7 @@ class CinemaLocationService {
   /// PATCH /api/CinemaLocations/toggle-status/{id}
   Future<bool> toggleCinemaStatus(String id, bool isActive) async {
     try {
-      final response = await _apiService.put('/CinemaLocations/toggle-status/$id', body: {'isActive': isActive});
+      final response = await _apiService.patch('/CinemaLocations/toggle-status/$id', body: {'isActive': isActive});
       return response.success;
     } catch (e) {
       throw Exception('Error toggling cinema status: $e');

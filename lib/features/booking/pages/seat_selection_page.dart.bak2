@@ -290,7 +290,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
           ),
         ),
         padding: AppSpacing.pagePadding,
-        child: SingleChildScrollView(child: Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -309,14 +309,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
               'Leyenda de Asientos',
               style: AppTypography.headlineSmall,
             ),
-            SizedBox(height: AppSpacing.md),
-
-            // Estados de Asientos
-            Text(
-              'Estados',
-              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: AppSpacing.sm),
+            SizedBox(height: AppSpacing.lg),
             _buildLegendItem(
               color: AppColors.primary,
               label: 'Seleccionado',
@@ -326,46 +319,22 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
               label: 'Disponible',
             ),
             _buildLegendItem(
+              color: AppColors.vip,
+              label: 'VIP - \$180',
+            ),
+            _buildLegendItem(
               color: isDark ? AppColors.darkTextSecondary.withOpacity(0.4) : AppColors.lightTextSecondary.withOpacity(0.5),
               label: 'Ocupado',
               icon: Icons.close,
             ),
             _buildLegendItem(
-              color: Colors.grey.shade600,
-              label: 'No Disponible',
-              icon: Icons.block,
-            ),
-
-            SizedBox(height: AppSpacing.md),
-
-            // Tipos de Asientos
-            Text(
-              'Tipos de Asientos',
-              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: AppSpacing.sm),
-            _buildLegendItem(
-              color: AppColors.success,
-              label: 'Regular - ₡4,500',
-            ),
-            _buildLegendItem(
-              color: AppColors.vip,
-              label: 'VIP - ₡6,500',
-            ),
-            _buildLegendItem(
               color: AppColors.info,
-              label: 'Accesible - ₡4,500',
+              label: 'Accesible - \$120',
               icon: Icons.accessible,
-            ),
-            _buildLegendItem(
-              color: Colors.grey.shade300,
-              label: 'Pasillo',
-              icon: Icons.more_horiz,
-              hasBorder: true,
             ),
             SizedBox(height: AppSpacing.lg),
           ],
-        )),
+        ),
       ),
     );
   }
@@ -374,7 +343,6 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
     required Color color,
     required String label,
     IconData? icon,
-    bool hasBorder = false,
   }) {
     return Padding(
       padding: EdgeInsets.only(bottom: AppSpacing.md),
@@ -386,10 +354,9 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             decoration: BoxDecoration(
               color: color,
               borderRadius: AppSpacing.borderRadiusXS,
-              border: hasBorder ? Border.all(color: Colors.grey.shade400, width: 2) : null,
             ),
             child: icon != null
-                ? Icon(icon, color: hasBorder ? Colors.grey.shade600 : Colors.white, size: 20)
+                ? Icon(icon, color: Colors.white, size: 20)
                 : null,
           ),
           SizedBox(width: AppSpacing.md),

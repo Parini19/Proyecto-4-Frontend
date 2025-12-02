@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class TheaterRoomModel {
   final String id;
   final String? cinemaId;
@@ -29,7 +31,10 @@ class TheaterRoomModel {
       if (cinemaId != null) 'cinemaId': cinemaId,
       'name': name,
       'capacity': capacity,
-      if (seatConfiguration != null) 'seatConfiguration': seatConfiguration,
+      if (seatConfiguration != null) 'seatConfiguration':
+        seatConfiguration is String
+          ? seatConfiguration
+          : jsonEncode(seatConfiguration),
     };
   }
 }

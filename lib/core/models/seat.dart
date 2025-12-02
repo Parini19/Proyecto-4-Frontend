@@ -61,6 +61,7 @@ class Seat {
 enum SeatType {
   regular,
   vip,
+  empty, // For aisles/empty spaces
   wheelchair,
 }
 
@@ -81,6 +82,8 @@ extension SeatTypeExtension on SeatType {
         return 6500.0; // CRC (Colones)
       case SeatType.wheelchair:
         return 4500.0; // CRC (Colones)
+      case SeatType.empty:
+        return 0.0; // Empty spaces are not sellable
     }
   }
 
@@ -92,6 +95,8 @@ extension SeatTypeExtension on SeatType {
         return 'VIP';
       case SeatType.wheelchair:
         return 'Accesible';
+      case SeatType.empty:
+        return 'Pasillo';
     }
   }
 }

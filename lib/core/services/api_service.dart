@@ -108,6 +108,27 @@ class ApiService {
     }
   }
 
+  // PATCH request
+  Future<ApiResponse> patch(String endpoint, {Map<String, dynamic>? body}) async {
+    try {
+      final url = Uri.parse('$_baseUrl$endpoint');
+      print('PATCH: $url');
+
+      final response = await http.patch(
+        url,
+        headers: _headers,
+        body: jsonEncode(body),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      print('Error en PATCH: $e');
+      return ApiResponse(
+        success: false,
+        message: 'Error de conexión: $e',
+      );
+    }
+  }
+
   // DELETE request
   Future<ApiResponse> delete(String endpoint) async {
     try {

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
@@ -5,8 +6,11 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
 import '../../../core/widgets/cinema_text_field.dart';
+import '../../../core/widgets/searchable_dropdown.dart';
 import '../../../core/models/theater_room_model.dart';
+import '../../../core/models/cinema_location.dart';
 import '../../../core/services/theater_rooms_service.dart';
+import '../../../core/services/cinema_location_service.dart';
 
 class TheaterRoomsManagementPage extends StatefulWidget {
   const TheaterRoomsManagementPage({super.key});
@@ -18,41 +22,51 @@ class TheaterRoomsManagementPage extends StatefulWidget {
 class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage> {
   List<TheaterRoomModel> _theaterRooms = [];
   List<TheaterRoomModel> _filteredTheaterRooms = [];
+  List<CinemaLocation> _cinemas = [];
   bool _isLoading = false;
   String _searchQuery = '';
   String? _error;
   final TheaterRoomsService _theaterRoomsService = TheaterRoomsService();
+  final CinemaLocationService _cinemaService = CinemaLocationService();
 
   @override
   void initState() {
     super.initState();
-    _loadTheaterRooms();
+    _loadData();
   }
 
-  Future<void> _loadTheaterRooms() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      print('🏛️ Cargando salas de cine desde el backend...');
-      final rooms = await _theaterRoomsService.getAllTheaterRooms();
-      print('🏛️ Salas de cine cargadas: ${rooms.length}');
-      
+      print('🏛️ Cargando salas y cines desde el backend...');
+      final results = await Future.wait([
+        _theaterRoomsService.getAllTheaterRooms(),
+        _cinemaService.getActiveCinemas(),
+      ]);
+
+      final rooms = results[0] as List<TheaterRoomModel>;
+      final cinemas = results[1] as List<CinemaLocation>;
+
+      print('🏛️ Salas cargadas: ${rooms.length}, Cines cargados: ${cinemas.length}');
+
       setState(() {
         _theaterRooms = rooms;
         _filteredTheaterRooms = rooms;
+        _cinemas = cinemas;
         _isLoading = false;
       });
-      
+
       if (rooms.isEmpty) {
         print('⚠️ No se encontraron salas de cine en el backend');
       }
     } catch (e) {
-      print('❌ Error cargando salas de cine: $e');
+      print('❌ Error cargando datos: $e');
       setState(() {
-        _error = 'Error cargando salas de cine del servidor: $e';
+        _error = 'Error cargando datos del servidor: $e';
         _isLoading = false;
       });
     }
@@ -154,10 +168,11 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
     showDialog(
       context: context,
       builder: (context) => _TheaterRoomFormDialog(
+        cinemas: _cinemas,
         onSave: (room) async {
           final success = await _theaterRoomsService.addTheaterRoom(room);
           if (success) {
-            _loadTheaterRooms();
+            _loadData();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Sala "${room.name}" agregada exitosamente'),
@@ -181,11 +196,12 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
     showDialog(
       context: context,
       builder: (context) => _TheaterRoomFormDialog(
+        cinemas: _cinemas,
         room: room,
         onSave: (updatedRoom) async {
           final success = await _theaterRoomsService.updateTheaterRoom(updatedRoom);
           if (success) {
-            _loadTheaterRooms();
+            _loadData();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Sala "${updatedRoom.name}" actualizada exitosamente'),
@@ -221,7 +237,7 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
               Navigator.pop(context);
               final success = await _theaterRoomsService.deleteTheaterRoom(room.id);
               if (success) {
-                _loadTheaterRooms();
+                _loadData();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Sala "${room.name}" eliminada exitosamente'),
@@ -240,35 +256,6 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
             child: Text('Eliminar', style: TextStyle(color: AppColors.error)),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showSeatConfigurator(TheaterRoomModel room) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => _SeatConfiguratorPage(
-          room: room,
-          onSave: (updatedRoom) async {
-            final success = await _theaterRoomsService.updateTheaterRoom(updatedRoom);
-            if (success) {
-              _loadTheaterRooms();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Configuración de asientos guardada exitosamente'),
-                  backgroundColor: AppColors.success,
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error al guardar configuración de asientos'),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-            }
-          },
-        ),
       ),
     );
   }
@@ -292,7 +279,7 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
-            onPressed: _loadTheaterRooms,
+            onPressed: _loadData,
           ),
           IconButton(
             icon: Icon(Icons.wifi),
@@ -387,7 +374,7 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
             CinemaButton(
               text: 'Reintentar',
               icon: Icons.refresh,
-              onPressed: _loadTheaterRooms,
+              onPressed: _loadData,
             ),
           ],
         ),
@@ -525,17 +512,14 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.grid_on, color: AppColors.info),
-              onPressed: () => _showSeatConfigurator(room),
-              tooltip: 'Configurar asientos',
-            ),
-            IconButton(
               icon: Icon(Icons.edit, color: AppColors.primary),
               onPressed: () => _showEditTheaterRoomDialog(room),
+              tooltip: 'Editar sala',
             ),
             IconButton(
               icon: Icon(Icons.delete, color: AppColors.error),
               onPressed: () => _showDeleteConfirmation(room),
+              tooltip: 'Eliminar sala',
             ),
           ],
         ),
@@ -545,148 +529,18 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
 }
 
 class _TheaterRoomFormDialog extends StatefulWidget {
+  final List<CinemaLocation> cinemas;
   final TheaterRoomModel? room;
   final Function(TheaterRoomModel) onSave;
 
   const _TheaterRoomFormDialog({
+    required this.cinemas,
     this.room,
     required this.onSave,
   });
 
   @override
   State<_TheaterRoomFormDialog> createState() => _TheaterRoomFormDialogState();
-}
-
-class _TheaterRoomFormDialogState extends State<_TheaterRoomFormDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _capacityController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.room != null) {
-      _nameController.text = widget.room!.name;
-      _capacityController.text = widget.room!.capacity.toString();
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _capacityController.dispose();
-    super.dispose();
-  }
-
-  void _saveTheaterRoom() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final room = TheaterRoomModel(
-        id: widget.room?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text.trim(),
-        capacity: int.parse(_capacityController.text.trim()),
-      );
-
-      widget.onSave(room);
-      Navigator.pop(context);
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(
-        widget.room == null ? 'Agregar Sala de Cine' : 'Editar Sala de Cine',
-        style: AppTypography.titleLarge.copyWith(fontWeight: FontWeight.bold),
-      ),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CinemaTextField(
-              controller: _nameController,
-              label: 'Nombre de la sala',
-              hint: 'Ej: Sala 1, Sala VIP, etc.',
-              prefixIcon: Icons.meeting_room,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'El nombre es obligatorio';
-                }
-                if (value.trim().length < 2) {
-                  return 'El nombre debe tener al menos 2 caracteres';
-                }
-                return null;
-              },
-            ),
-            SizedBox(height: AppSpacing.md),
-            CinemaTextField(
-              controller: _capacityController,
-              label: 'Capacidad',
-              hint: 'Número de asientos (ej: 100)',
-              prefixIcon: Icons.event_seat,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'La capacidad es obligatoria';
-                }
-                final capacity = int.tryParse(value.trim());
-                if (capacity == null) {
-                  return 'La capacidad debe ser un número válido';
-                }
-                if (capacity <= 0) {
-                  return 'La capacidad debe ser mayor a 0';
-                }
-                if (capacity > 1000) {
-                  return 'La capacidad no puede exceder 1000 asientos';
-                }
-                return null;
-              },
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _isLoading ? null : _saveTheaterRoom,
-          child: _isLoading
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(widget.room == null ? 'Agregar' : 'Guardar'),
-        ),
-      ],
-    );
-  }
-}
-
-// Seat Configurator Page
-class _SeatConfiguratorPage extends StatefulWidget {
-  final TheaterRoomModel room;
-  final Function(TheaterRoomModel) onSave;
-
-  const _SeatConfiguratorPage({
-    required this.room,
-    required this.onSave,
-  });
-
-  @override
-  State<_SeatConfiguratorPage> createState() => _SeatConfiguratorPageState();
 }
 
 enum SeatType { normal, vip, wheelchair, disabled, empty }
@@ -714,27 +568,49 @@ class _Seat {
   );
 }
 
-class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
-  final _rowsController = TextEditingController();
-  final _colsController = TextEditingController();
+class _TheaterRoomFormDialogState extends State<_TheaterRoomFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _capacityController = TextEditingController();
+  final _rowsController = TextEditingController(text: '8');
+  final _colsController = TextEditingController(text: '12');
+
+  String? _selectedCinemaId;
+  bool _isLoading = false;
+  bool _seatsGenerated = false;
 
   int _rows = 8;
   int _cols = 12;
   List<_Seat> _seats = [];
-  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadConfiguration();
+    if (widget.room != null) {
+      _nameController.text = widget.room!.name;
+      _capacityController.text = widget.room!.capacity.toString();
+      _selectedCinemaId = widget.room!.cinemaId;
+      _loadExistingSeatConfiguration();
+    }
   }
 
-  void _loadConfiguration() {
+  void _loadExistingSeatConfiguration() {
     try {
-      if (widget.room.seatConfiguration != null && widget.room.seatConfiguration!.isNotEmpty) {
-        final config = Map<String, dynamic>.from(
-          (widget.room.seatConfiguration! as Map).cast<String, dynamic>()
-        );
+      if (widget.room?.seatConfiguration != null && widget.room!.seatConfiguration!.isNotEmpty) {
+        // Parse the JSON string or object
+        Map<String, dynamic> config;
+
+        if (widget.room!.seatConfiguration is String) {
+          // If it's a string, parse it
+          config = Map<String, dynamic>.from(
+            jsonDecode(widget.room!.seatConfiguration as String)
+          );
+        } else {
+          // If it's already an object, use it directly
+          config = Map<String, dynamic>.from(
+            (widget.room!.seatConfiguration! as Map).cast<String, dynamic>()
+          );
+        }
 
         _rows = config['rows'] ?? 8;
         _cols = config['columns'] ?? 12;
@@ -743,35 +619,24 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
           _seats = (config['seats'] as List)
               .map((s) => _Seat.fromJson(Map<String, dynamic>.from(s)))
               .toList();
-        } else {
-          _generateDefaultSeats();
+          _seatsGenerated = true;
         }
-      } else {
-        _generateDefaultSeats();
+
+        _rowsController.text = _rows.toString();
+        _colsController.text = _cols.toString();
+
+        setState(() {}); // Trigger rebuild to show seats
       }
     } catch (e) {
       print('Error loading seat configuration: $e');
-      _generateDefaultSeats();
-    }
-
-    _rowsController.text = _rows.toString();
-    _colsController.text = _cols.toString();
-  }
-
-  void _generateDefaultSeats() {
-    _seats = [];
-    for (int r = 0; r < _rows; r++) {
-      for (int c = 0; c < _cols; c++) {
-        _seats.add(_Seat(row: r, col: c, type: SeatType.normal));
-      }
     }
   }
 
-  void _regenerateSeats() {
-    final newRows = int.tryParse(_rowsController.text) ?? 8;
-    final newCols = int.tryParse(_colsController.text) ?? 12;
+  void _generateSeats() {
+    final rows = int.tryParse(_rowsController.text);
+    final cols = int.tryParse(_colsController.text);
 
-    if (newRows < 1 || newRows > 20 || newCols < 1 || newCols > 30) {
+    if (rows == null || cols == null || rows < 1 || rows > 20 || cols < 1 || cols > 30) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Filas: 1-20, Columnas: 1-30'),
@@ -782,25 +647,19 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
     }
 
     setState(() {
-      _rows = newRows;
-      _cols = newCols;
-
-      // Keep existing seat types where possible
-      final oldSeats = Map.fromEntries(
-        _seats.map((s) => MapEntry('${s.row}-${s.col}', s.type))
-      );
-
+      _rows = rows;
+      _cols = cols;
       _seats = [];
       for (int r = 0; r < _rows; r++) {
         for (int c = 0; c < _cols; c++) {
-          final key = '$r-$c';
-          _seats.add(_Seat(
-            row: r,
-            col: c,
-            type: oldSeats[key] ?? SeatType.normal,
-          ));
+          _seats.add(_Seat(row: r, col: c, type: SeatType.normal));
         }
       }
+      _seatsGenerated = true;
+
+      // Auto-update capacity based on seats
+      final normalSeats = _seats.where((s) => s.type != SeatType.empty).length;
+      _capacityController.text = normalSeats.toString();
     });
   }
 
@@ -827,10 +686,47 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
           seat.type = SeatType.normal;
           break;
       }
+
+      // Update capacity based on non-empty seats
+      final normalSeats = _seats.where((s) => s.type != SeatType.empty).length;
+      _capacityController.text = normalSeats.toString();
     });
   }
 
-  void _saveConfiguration() async {
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _capacityController.dispose();
+    _rowsController.dispose();
+    _colsController.dispose();
+    super.dispose();
+  }
+
+  void _saveTheaterRoom() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // Validate cinema selection
+    if (_selectedCinemaId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Selecciona un cine'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Validate seats are generated
+    if (!_seatsGenerated || _seats.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Genera la configuración de asientos primero'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -842,15 +738,15 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
 
       final normalSeats = _seats.where((s) => s.type != SeatType.empty).length;
 
-      final updatedRoom = TheaterRoomModel(
-        id: widget.room.id,
-        cinemaId: widget.room.cinemaId,
-        name: widget.room.name,
+      final room = TheaterRoomModel(
+        id: widget.room?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        cinemaId: _selectedCinemaId,
+        name: _nameController.text.trim(),
         capacity: normalSeats,
         seatConfiguration: config,
       );
 
-      widget.onSave(updatedRoom);
+      widget.onSave(room);
       Navigator.pop(context);
     } finally {
       if (mounted) {
@@ -868,176 +764,280 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
     final wheelchairCount = _seats.where((s) => s.type == SeatType.wheelchair).length;
     final disabledCount = _seats.where((s) => s.type == SeatType.disabled).length;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        title: Text('Configurar Asientos - ${widget.room.name}'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.save),
-            onPressed: _isLoading ? null : _saveConfiguration,
-          ),
-          SizedBox(width: AppSpacing.sm),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: AppSpacing.pagePadding,
+    return Dialog(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        height: MediaQuery.of(context).size.height * 0.9,
+        padding: AppSpacing.paddingLG,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Configuration Panel
-            Container(
-              padding: AppSpacing.paddingLG,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                borderRadius: AppSpacing.borderRadiusLG,
-                boxShadow: isDark ? AppColors.elevatedShadow : AppColors.cardShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Configuración de la Sala',
-                    style: AppTypography.titleLarge.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+            // Header
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.room == null ? 'Agregar Sala de Cine' : 'Editar Sala de Cine',
+                    style: AppTypography.headlineMedium.copyWith(fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: AppSpacing.md),
-                  Row(
+                ),
+                IconButton(
+                  icon: Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            Divider(),
+            SizedBox(height: AppSpacing.md),
+
+            // Content
+            Expanded(
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: CinemaTextField(
-                          controller: _rowsController,
-                          label: 'Filas',
-                          hint: '1-20',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        ),
+                      // Cinema Selection
+                      SearchableDropdown<CinemaLocation>(
+                        label: 'Cine *',
+                        hint: 'Selecciona un cine',
+                        prefixIcon: Icons.business,
+                        value: widget.cinemas.where((c) => c.id == _selectedCinemaId).firstOrNull,
+                        items: widget.cinemas,
+                        itemLabel: (cinema) => '${cinema.name} - ${cinema.address}',
+                        onChanged: (cinema) {
+                          setState(() {
+                            _selectedCinemaId = cinema?.id;
+                          });
+                        },
                       ),
-                      SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: CinemaTextField(
-                          controller: _colsController,
-                          label: 'Columnas',
-                          hint: '1-30',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        ),
+                      SizedBox(height: AppSpacing.md),
+
+                      // Name Field
+                      CinemaTextField(
+                        controller: _nameController,
+                        label: 'Nombre de la sala *',
+                        hint: 'Ej: Sala 1, Sala VIP, etc.',
+                        prefixIcon: Icons.meeting_room,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'El nombre es obligatorio';
+                          }
+                          if (value.trim().length < 2) {
+                            return 'El nombre debe tener al menos 2 caracteres';
+                          }
+                          return null;
+                        },
                       ),
-                      SizedBox(width: AppSpacing.md),
-                      CinemaButton(
-                        text: 'Aplicar',
-                        icon: Icons.refresh,
-                        onPressed: _regenerateSeats,
+                      SizedBox(height: AppSpacing.md),
+
+                      // Capacity Field (read-only, auto-calculated)
+                      CinemaTextField(
+                        controller: _capacityController,
+                        label: 'Capacidad (auto-calculada)',
+                        hint: 'Se calcula según configuración de asientos',
+                        prefixIcon: Icons.event_seat,
+                        enabled: false,
                       ),
-                    ],
-                  ),
-                  SizedBox(height: AppSpacing.md),
-                  Wrap(
-                    spacing: AppSpacing.md,
-                    runSpacing: AppSpacing.sm,
-                    children: [
-                      _buildLegendItem('Normal', AppColors.primary, normalCount, isDark),
-                      _buildLegendItem('Discapacitados', AppColors.error, wheelchairCount, isDark),
-                      _buildLegendItem('Deshabilitado', AppColors.textSecondary, disabledCount, isDark),
-                      _buildLegendItem('VIP', AppColors.warning, vipCount, isDark),
-                      _buildLegendItem('Vacío', isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant, emptyCount, isDark),
-                    ],
-                  ),
-                  SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Haz clic en un asiento para cambiar su tipo: Normal → VIP → Discapacitados → Deshabilitado → Vacío',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                      SizedBox(height: AppSpacing.lg),
 
-            SizedBox(height: AppSpacing.xl),
-
-            // Screen indicator
-            Center(
-              child: Container(
-                width: _cols * 40.0 * 0.8,
-                height: 8,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
-            SizedBox(height: AppSpacing.xs),
-            Center(
-              child: Text(
-                'PANTALLA',
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.textSecondary,
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-            SizedBox(height: AppSpacing.lg),
-
-            // Seat Grid
-            Center(
-              child: Container(
-                padding: AppSpacing.paddingLG,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                  borderRadius: AppSpacing.borderRadiusLG,
-                  boxShadow: isDark ? AppColors.elevatedShadow : AppColors.cardShadow,
-                ),
-                child: Column(
-                  children: List.generate(_rows, (row) {
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: AppSpacing.xs),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Row label
-                          SizedBox(
-                            width: 32,
-                            child: Text(
-                              String.fromCharCode(65 + row),
-                              style: AppTypography.labelSmall.copyWith(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+                      // Seat Configuration Section
+                      Container(
+                        padding: AppSpacing.paddingMD,
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                          borderRadius: AppSpacing.borderRadiusLG,
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                           ),
-                          // Seats
-                          ...List.generate(_cols, (col) {
-                            final seat = _seats.firstWhere(
-                              (s) => s.row == row && s.col == col,
-                            );
-                            return Padding(
-                              padding: EdgeInsets.only(right: AppSpacing.xs),
-                              child: _buildSeat(seat, isDark),
-                            );
-                          }),
-                        ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Configuración de Asientos',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                if (widget.room != null && _seatsGenerated)
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.sm,
+                                      vertical: AppSpacing.xs,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.info.withOpacity(0.1),
+                                      borderRadius: AppSpacing.borderRadiusSM,
+                                      border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                                    ),
+                                    child: Text(
+                                      'Editando: ${_rows}x${_cols}',
+                                      style: AppTypography.bodySmall.copyWith(
+                                        color: AppColors.info,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            SizedBox(height: AppSpacing.md),
+
+                            // Only show configuration fields if creating OR if editing and seats not yet generated
+                            if (widget.room == null || !_seatsGenerated) ...[
+                              // Rows and Columns
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: CinemaTextField(
+                                      controller: _rowsController,
+                                      label: 'Filas',
+                                      hint: '1-20',
+                                      keyboardType: TextInputType.number,
+                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    ),
+                                  ),
+                                  SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: CinemaTextField(
+                                      controller: _colsController,
+                                      label: 'Columnas',
+                                      hint: '1-30',
+                                      keyboardType: TextInputType.number,
+                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    ),
+                                  ),
+                                  SizedBox(width: AppSpacing.md),
+                                  CinemaButton(
+                                    text: 'Generar',
+                                    icon: Icons.grid_on,
+                                    onPressed: _generateSeats,
+                                  ),
+                                ],
+                              ),
+                            ],
+
+                            if (_seatsGenerated) ...[
+                              SizedBox(height: AppSpacing.md),
+                              // Legend
+                              Wrap(
+                                spacing: AppSpacing.sm,
+                                runSpacing: AppSpacing.xs,
+                                children: [
+                                  _buildLegendChip('Normal', AppColors.primary, normalCount, isDark),
+                                  _buildLegendChip('VIP', AppColors.warning, vipCount, isDark),
+                                  _buildLegendChip('Discapacitados', AppColors.error, wheelchairCount, isDark),
+                                  _buildLegendChip('Deshabilitado', AppColors.textSecondary, disabledCount, isDark),
+                                  _buildLegendChip('Vacío', isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant, emptyCount, isDark),
+                                ],
+                              ),
+                              SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'Haz clic en un asiento para cambiar su tipo',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              SizedBox(height: AppSpacing.md),
+
+                              // Screen indicator
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: _cols * 32.0 * 0.8,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        gradient: AppColors.primaryGradient,
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    SizedBox(height: AppSpacing.xs),
+                                    Text(
+                                      'PANTALLA',
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: AppColors.textSecondary,
+                                        letterSpacing: 2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: AppSpacing.md),
+
+                              // Seat Grid
+                              Center(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Column(
+                                    children: List.generate(_rows, (row) {
+                                      return Padding(
+                                        padding: EdgeInsets.only(bottom: AppSpacing.xs),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Row label
+                                            SizedBox(
+                                              width: 24,
+                                              child: Text(
+                                                String.fromCharCode(65 + row),
+                                                style: AppTypography.labelSmall.copyWith(
+                                                  color: AppColors.textSecondary,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            // Seats
+                                            ...List.generate(_cols, (col) {
+                                              final seat = _seats.firstWhere(
+                                                (s) => s.row == row && s.col == col,
+                                              );
+                                              return Padding(
+                                                padding: EdgeInsets.only(right: AppSpacing.xs),
+                                                child: _buildSeat(seat, isDark),
+                                              );
+                                            }),
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                    );
-                  }),
+                    ],
+                  ),
                 ),
               ),
             ),
 
-            SizedBox(height: AppSpacing.xl),
-
-            // Save Button
-            Center(
-              child: CinemaButton(
-                text: 'Guardar Configuración',
-                icon: Icons.save,
-                isFullWidth: false,
-                onPressed: _isLoading ? null : _saveConfiguration,
-              ),
+            // Actions
+            SizedBox(height: AppSpacing.md),
+            Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: _isLoading ? null : () => Navigator.pop(context),
+                  child: Text('Cancelar'),
+                ),
+                SizedBox(width: AppSpacing.sm),
+                CinemaButton(
+                  text: widget.room == null ? 'Crear Sala' : 'Guardar Cambios',
+                  icon: Icons.save,
+                  isFullWidth: false,
+                  onPressed: _isLoading ? null : _saveTheaterRoom,
+                ),
+              ],
             ),
           ],
         ),
@@ -1045,7 +1045,7 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
     );
   }
 
-  Widget _buildLegendItem(String label, Color color, int count, bool isDark) {
+  Widget _buildLegendChip(String label, Color color, int count, bool isDark) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
@@ -1057,11 +1057,11 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 16,
-            height: 16,
+            width: 12,
+            height: 12,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(3),
             ),
           ),
           SizedBox(width: AppSpacing.xs),
@@ -1078,8 +1078,8 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
   }
 
   Widget _buildSeat(_Seat seat, bool isDark) {
-    Color seatColor;
-    IconData icon;
+    late Color seatColor;
+    late IconData icon;
 
     switch (seat.type) {
       case SeatType.normal:
@@ -1106,13 +1106,13 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
 
     return InkWell(
       onTap: () => _toggleSeatType(seat.row, seat.col),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(4),
       child: Container(
-        width: 32,
-        height: 32,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
           color: seatColor.withOpacity(seat.type == SeatType.empty ? 0.3 : 0.8),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(
             color: seatColor,
             width: seat.type == SeatType.empty ? 1 : 2,
@@ -1120,19 +1120,12 @@ class _SeatConfiguratorPageState extends State<_SeatConfiguratorPage> {
         ),
         child: Icon(
           icon,
-          size: 16,
+          size: 14,
           color: seat.type == SeatType.empty
               ? seatColor.withOpacity(0.5)
               : Colors.white,
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _rowsController.dispose();
-    _colsController.dispose();
-    super.dispose();
   }
 }
