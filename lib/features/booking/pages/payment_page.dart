@@ -955,6 +955,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage>
               bookingId: effectiveBookingId,
               invoiceNumber: result.invoiceNumber ?? '',
               ticketsGenerated: result.ticketsGenerated ?? 0,
+              confirmationEmail: _emailController.text.trim().isNotEmpty
+                  ? _emailController.text.trim()
+                  : null,
             ),
           ),
         );

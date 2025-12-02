@@ -13,19 +13,21 @@ class ConfirmationPage extends ConsumerWidget {
   final String bookingId;
   final String invoiceNumber;
   final int ticketsGenerated;
+  final String? confirmationEmail;
 
   const ConfirmationPage({
     super.key,
     required this.bookingId,
     required this.invoiceNumber,
     required this.ticketsGenerated,
+    this.confirmationEmail,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookingState = ref.watch(bookingProvider);
     final authService = AuthService();
-    final userEmail = authService.currentUser?.email ?? 'usuario@ejemplo.com';
+    final userEmail = confirmationEmail ?? authService.currentUser?.email ?? 'usuario@ejemplo.com';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
