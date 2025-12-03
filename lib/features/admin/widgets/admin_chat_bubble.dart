@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
-import '../../core/models/chat_models.dart';
-import '../../core/services/chat_service.dart';
+import '../../../core/models/chat_models.dart';
+import '../../../core/services/admin_chat_service.dart';
 
-class FloatingChatBubble extends StatefulWidget {
-  const FloatingChatBubble({Key? key}) : super(key: key);
+class AdminChatBubble extends StatefulWidget {
+  const AdminChatBubble({Key? key}) : super(key: key);
 
   @override
-  State<FloatingChatBubble> createState() => _FloatingChatBubbleState();
+  State<AdminChatBubble> createState() => _AdminChatBubbleState();
 }
 
-class _FloatingChatBubbleState extends State<FloatingChatBubble>
+class _AdminChatBubbleState extends State<AdminChatBubble>
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-  final ChatService _chatService = ChatService();
+  final AdminChatService _chatService = AdminChatService();
   final List<ChatMessage> _messages = [];
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
+
+  // Color distintivo para el admin (naranja/morado)
+  final Color _adminColor = const Color(0xFFFF6B35);
 
   @override
   void initState() {
@@ -32,10 +35,10 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
       curve: Curves.easeInOut,
     );
 
-    // Mensaje de bienvenida
+    // Mensaje de bienvenida admin
     _messages.add(ChatMessage(
       id: '1',
-      content: '¡Hola! Soy tu asistente de películas. ¿En qué puedo ayudarte hoy? Puedo recomendarte películas según tus gustos.',
+      content: '¡Hola Admin! Soy tu asistente de análisis y reportes. Puedo ayudarte con estadísticas, consultas sobre ingresos, ocupación, películas populares y más. ¿Qué te gustaría saber?',
       isUser: false,
       timestamp: DateTime.now(),
     ));
@@ -53,7 +56,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
     setState(() {
       _isExpanded = !_isExpanded;
     });
-    
+
     if (_isExpanded) {
       _animationController.forward();
     } else {
@@ -96,7 +99,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
     // Agregar mensaje de carga
     final loadingMessage = ChatMessage(
       id: '${DateTime.now().millisecondsSinceEpoch}_loading',
-      content: 'Escribiendo...',
+      content: 'Analizando...',
       isUser: false,
       timestamp: DateTime.now(),
       isLoading: true,
@@ -109,9 +112,9 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
     _scrollToBottom();
 
     try {
-      // Enviar mensaje al servicio
+      // Enviar mensaje al servicio admin
       final response = await _chatService.sendMessage(messageText);
-      
+
       // Remover mensaje de carga
       setState(() {
         _messages.removeWhere((msg) => msg.isLoading);
@@ -164,28 +167,28 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
         // Chat expandido
         if (_isExpanded)
           Positioned(
-            bottom: isMobile ? 90 : 150,
-            right: 20,
+            bottom: isMobile ? 170 : 150,
+            right: isMobile ? 20 : 100, // Más a la izquierda para no solapar
             child: ScaleTransition(
               scale: _scaleAnimation,
               child: Material(
                 elevation: 8,
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  width: 320,
-                  height: 400,
+                  width: 350,
+                  height: 450,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: _adminColor.withOpacity(0.3), width: 2),
                   ),
                   child: Column(
                     children: [
-                      // Header del chat
+                      // Header del chat admin
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor,
+                          color: _adminColor,
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(16),
                             topRight: Radius.circular(16),
@@ -194,14 +197,14 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
                         child: Row(
                           children: [
                             const Icon(
-                              Icons.smart_toy,
+                              Icons.analytics,
                               color: Colors.white,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             const Expanded(
                               child: Text(
-                                'Asistente de Películas',
+                                'Asistente de Análisis',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -251,7 +254,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
                                   fontSize: 14,
                                 ),
                                 decoration: InputDecoration(
-                                  hintText: 'Escribe tu mensaje...',
+                                  hintText: 'Pregunta sobre reportes...',
                                   hintStyle: TextStyle(
                                     color: Colors.grey.shade600,
                                     fontSize: 14,
@@ -275,7 +278,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
                             const SizedBox(width: 8),
                             Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
+                                color: _adminColor,
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: IconButton(
@@ -301,17 +304,17 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
               ),
             ),
           ),
-        // Burbuja flotante
+        // Burbuja flotante admin
         Positioned(
-          bottom: isMobile ? 20 : 80,
-          right: 20,
+          bottom: isMobile ? 100 : 80,
+          right: isMobile ? 20 : 100, // Posicionado diferente para no solapar
           child: GestureDetector(
             onTap: _toggleChat,
             child: Container(
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+                color: _adminColor,
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
@@ -322,7 +325,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
                 ],
               ),
               child: const Icon(
-                Icons.chat_bubble,
+                Icons.analytics,
                 color: Colors.white,
                 size: 28,
               ),
@@ -343,11 +346,11 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
           if (!message.isUser) ...[
             CircleAvatar(
               radius: 12,
-              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+              backgroundColor: _adminColor.withOpacity(0.1),
               child: Icon(
-                Icons.smart_toy,
+                Icons.analytics,
                 size: 16,
-                color: Theme.of(context).primaryColor,
+                color: _adminColor,
               ),
             ),
             const SizedBox(width: 8),
@@ -357,7 +360,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: message.isUser
-                    ? Theme.of(context).primaryColor
+                    ? _adminColor
                     : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -371,7 +374,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context).primaryColor,
+                              _adminColor,
                             ),
                           ),
                         ),
@@ -398,11 +401,11 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
             const SizedBox(width: 8),
             CircleAvatar(
               radius: 12,
-              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+              backgroundColor: _adminColor.withOpacity(0.1),
               child: Icon(
-                Icons.person,
+                Icons.admin_panel_settings,
                 size: 16,
-                color: Theme.of(context).primaryColor,
+                color: _adminColor,
               ),
             ),
           ],

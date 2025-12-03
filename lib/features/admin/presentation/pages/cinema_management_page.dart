@@ -152,6 +152,8 @@ class _CinemaManagementPageState extends State<CinemaManagementPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -173,12 +175,15 @@ class _CinemaManagementPageState extends State<CinemaManagementPage> {
           : _errorMessage != null
               ? _buildErrorView()
               : _buildCinemasList(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _navigateToCreateCinema,
-        icon: const Icon(Icons.add_business),
-        label: const Text('Nuevo Cine'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: isMobile ? 70 : 0),
+        child: FloatingActionButton.extended(
+          onPressed: _navigateToCreateCinema,
+          icon: const Icon(Icons.add_business),
+          label: const Text('Nuevo Cine'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
       ),
     );
   }
@@ -246,9 +251,11 @@ class _CinemaManagementPageState extends State<CinemaManagementPage> {
 
   Widget _buildFilters() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Container(
-      padding: AppSpacing.paddingMD,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingMD,
       color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
       child: Column(
         children: [
@@ -263,6 +270,9 @@ class _CinemaManagementPageState extends State<CinemaManagementPage> {
               ),
               filled: true,
               fillColor: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
+              contentPadding: isMobile
+                  ? const EdgeInsets.symmetric(vertical: 12, horizontal: 16)
+                  : null,
             ),
             onChanged: (value) {
               setState(() {
@@ -270,25 +280,45 @@ class _CinemaManagementPageState extends State<CinemaManagementPage> {
               });
             },
           ),
-          SizedBox(height: AppSpacing.sm),
+          SizedBox(height: isMobile ? AppSpacing.xs : AppSpacing.sm),
           // City filter
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Ciudad:', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
+              Text(
+                'Ciudad:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: isMobile ? 12 : 14,
+                ),
+              ),
+              SizedBox(height: AppSpacing.xs),
+              SizedBox(
+                height: isMobile ? 40 : 48,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
                   children: [
-                    ChoiceChip(
-                      label: const Text('Todas'),
-                      selected: _filterCity == 'all',
-                      onSelected: (_) => setState(() => _filterCity = 'all'),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: const Text('Todas'),
+                        selected: _filterCity == 'all',
+                        onSelected: (_) => setState(() => _filterCity = 'all'),
+                        visualDensity: isMobile
+                            ? VisualDensity.compact
+                            : VisualDensity.standard,
+                      ),
                     ),
-                    ..._availableCities.map((city) => ChoiceChip(
-                          label: Text(city),
-                          selected: _filterCity == city,
-                          onSelected: (_) => setState(() => _filterCity = city),
+                    ..._availableCities.map((city) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(city),
+                            selected: _filterCity == city,
+                            onSelected: (_) => setState(() => _filterCity = city),
+                            visualDensity: isMobile
+                                ? VisualDensity.compact
+                                : VisualDensity.standard,
+                          ),
                         )),
                   ],
                 ),

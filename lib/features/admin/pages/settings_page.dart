@@ -24,19 +24,43 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      body: Column(
-        children: [
-          _buildHeader(isDark),
-          Expanded(child: _buildContent(isDark)),
-        ],
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pop();
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        appBar: isMobile ? AppBar(
+          backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text('Configuración', style: AppTypography.titleMedium),
+          actions: [
+            IconButton(
+              onPressed: _saveSettings,
+              icon: Icon(Icons.save, size: 20),
+              tooltip: 'Guardar',
+            ),
+          ],
+        ) : null,
+        body: Column(
+          children: [
+            if (!isMobile) _buildHeader(isDark, isMobile),
+            Expanded(child: _buildContent(isDark, isMobile)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(bool isDark, bool isMobile) {
     return Container(
       padding: AppSpacing.paddingLG,
       decoration: BoxDecoration(
@@ -84,9 +108,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildContent(bool isDark) {
+  Widget _buildContent(bool isDark, bool isMobile) {
     return SingleChildScrollView(
-      padding: AppSpacing.paddingLG,
+      padding: isMobile ? AppSpacing.paddingMD : AppSpacing.paddingLG,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -110,7 +134,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ],
             isDark,
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           _buildSection(
             'Sistema',
             [
@@ -131,7 +155,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ],
             isDark,
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           _buildSection(
             'Sesión y Seguridad',
             [
@@ -147,7 +171,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ],
             isDark,
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           _buildSection(
             'Configuración Regional',
             [
@@ -162,7 +186,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ],
             isDark,
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           _buildSection(
             'Avanzado',
             [
@@ -190,6 +214,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ],
             isDark,
           ),
+          SizedBox(height: isMobile ? 80 : 24), // Espacio extra en mobile para los chatbots flotantes
         ],
       ),
     );

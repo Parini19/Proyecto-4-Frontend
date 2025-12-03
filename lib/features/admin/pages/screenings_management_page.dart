@@ -146,13 +146,15 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: Text(
           'Gestión de Funciones',
-          style: AppTypography.headlineMedium.copyWith(
+          style: (isMobile ? AppTypography.headlineSmall : AppTypography.headlineMedium).copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -165,71 +167,120 @@ class _ScreeningsManagementPageState extends State<ScreeningsManagementPage> {
             onPressed: _loadData,
             tooltip: 'Actualizar',
           ),
-          SizedBox(width: AppSpacing.sm),
+          if (!isMobile) SizedBox(width: AppSpacing.sm),
         ],
       ),
       body: Column(
         children: [
           // Search and Filter Bar
           Container(
-            padding: AppSpacing.pagePadding,
+            padding: isMobile ? AppSpacing.paddingSM : AppSpacing.pagePadding,
             child: Column(
               children: [
-                Row(
+                // Search bar and button
+                isMobile
+                    ? Column(
+                        children: [
+                          TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Buscar funciones...',
+                              prefixIcon: Icon(Icons.search),
+                              filled: true,
+                              fillColor: isDark
+                                  ? AppColors.darkSurfaceVariant
+                                  : AppColors.lightSurfaceVariant,
+                              border: OutlineInputBorder(
+                                borderRadius: AppSpacing.borderRadiusMD,
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            ),
+                            onChanged: _filterScreenings,
+                          ),
+                          SizedBox(height: AppSpacing.sm),
+                          SizedBox(
+                            width: double.infinity,
+                            child: CinemaButton(
+                              text: 'Nueva Función',
+                              icon: Icons.add,
+                              onPressed: () => _showAddEditDialog(context, isDark),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: 'Buscar funciones...',
+                                prefixIcon: Icon(Icons.search),
+                                filled: true,
+                                fillColor: isDark
+                                    ? AppColors.darkSurfaceVariant
+                                    : AppColors.lightSurfaceVariant,
+                                border: OutlineInputBorder(
+                                  borderRadius: AppSpacing.borderRadiusMD,
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              onChanged: _filterScreenings,
+                            ),
+                          ),
+                          SizedBox(width: AppSpacing.md),
+                          CinemaButton(
+                            text: 'Nueva Función',
+                            icon: Icons.add,
+                            onPressed: () => _showAddEditDialog(context, isDark),
+                          ),
+                        ],
+                      ),
+                SizedBox(height: isMobile ? AppSpacing.xs : AppSpacing.sm),
+                // Cinema Filter
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Buscar funciones...',
-                          prefixIcon: Icon(Icons.search),
-                          filled: true,
-                          fillColor: isDark
-                              ? AppColors.darkSurfaceVariant
-                              : AppColors.lightSurfaceVariant,
-                          border: OutlineInputBorder(
-                            borderRadius: AppSpacing.borderRadiusMD,
-                            borderSide: BorderSide.none,
+                    Row(
+                      children: [
+                        Icon(Icons.business, size: isMobile ? 14 : 16, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                        SizedBox(width: AppSpacing.xs),
+                        Text(
+                          'Filtrar por cine:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isMobile ? 12 : 14,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                           ),
                         ),
-                        onChanged: _filterScreenings,
-                      ),
+                      ],
                     ),
-                    SizedBox(width: AppSpacing.md),
-                    CinemaButton(
-                      text: 'Nueva Función',
-                      icon: Icons.add,
-                      onPressed: () => _showAddEditDialog(context, isDark),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.sm),
-                // Cinema Filter
-                Row(
-                  children: [
-                    Icon(Icons.business, size: 16, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                    SizedBox(width: AppSpacing.xs),
-                    Text(
-                      'Filtrar por cine:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                    SizedBox(height: AppSpacing.xs),
+                    SizedBox(
+                      height: isMobile ? 40 : 48,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
                         children: [
-                          ChoiceChip(
-                            label: Text('Todos'),
-                            selected: _selectedCinemaId == null,
-                            onSelected: (_) => _filterByCinema(null),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text('Todos'),
+                              selected: _selectedCinemaId == null,
+                              onSelected: (_) => _filterByCinema(null),
+                              visualDensity: isMobile
+                                  ? VisualDensity.compact
+                                  : VisualDensity.standard,
+                            ),
                           ),
-                          ..._cinemas.map((cinema) => ChoiceChip(
-                                label: Text(cinema.name),
-                                selected: _selectedCinemaId == cinema.id,
-                                onSelected: (_) => _filterByCinema(cinema.id),
+                          ..._cinemas.map((cinema) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(cinema.name),
+                                  selected: _selectedCinemaId == cinema.id,
+                                  onSelected: (_) => _filterByCinema(cinema.id),
+                                  visualDensity: isMobile
+                                      ? VisualDensity.compact
+                                      : VisualDensity.standard,
+                                ),
                               )),
                         ],
                       ),

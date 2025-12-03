@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../models/payment.dart';
+import '../config/api_config.dart';
 
 class PaymentService {
   final Dio _dio;
   final Logger _logger = Logger();
-  final String baseUrl = 'https://localhost:7238/api';
+  String get baseUrl => '${ApiConfig.baseUrl}/api';
 
   PaymentService(this._dio);
 

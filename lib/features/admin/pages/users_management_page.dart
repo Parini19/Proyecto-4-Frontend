@@ -90,9 +90,11 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
 
   Widget _buildHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Container(
-      padding: AppSpacing.paddingXL,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingXL,
       decoration: BoxDecoration(
         gradient: isDark ? AppColors.cinemaGradient : null,
         color: isDark ? null : AppColors.lightSurfaceElevated,
@@ -106,90 +108,130 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: isDark ? AppColors.glowShadow : null,
-                ),
-                child: Icon(
-                  Icons.people,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-              SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Title and Add Button
+          if (isMobile)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      'Gestión de Usuarios',
-                      style: AppTypography.displaySmall.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.people,
+                        color: Colors.white,
+                        size: 20,
                       ),
                     ),
-                    SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Administra los usuarios registrados en el sistema',
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.textSecondary,
+                    SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Usuarios',
+                        style: AppTypography.titleLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              CinemaButton(
-                text: 'Agregar Usuario',
-                onPressed: () => _showAddEditDialog(),
-                icon: Icons.person_add,
-              ),
-            ],
+                SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: CinemaButton(
+                    text: 'Agregar Usuario',
+                    onPressed: () => _showAddEditDialog(),
+                    icon: Icons.person_add,
+                    size: ButtonSize.small,
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: isDark ? AppColors.glowShadow : null,
+                  ),
+                  child: Icon(
+                    Icons.people,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gestión de Usuarios',
+                        style: AppTypography.displaySmall.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Administra los usuarios registrados en el sistema',
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                CinemaButton(
+                  text: 'Agregar Usuario',
+                  onPressed: () => _showAddEditDialog(),
+                  icon: Icons.person_add,
+                ),
+              ],
+            ),
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.xl),
+
+          // Search Bar
+          CinemaTextField(
+            label: 'Buscar usuarios...',
+            prefixIcon: Icons.search,
+            onChanged: _filterUsers,
           ),
-          SizedBox(height: AppSpacing.xl),
-          
-          // Search and Stats
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.md),
+
+          // Stats Cards
           Row(
             children: [
-              // Search Bar
-              Expanded(
-                flex: 2,
-                child: CinemaTextField(
-                  label: 'Buscar usuarios...',
-                  prefixIcon: Icons.search,
-                  onChanged: _filterUsers,
-                ),
-              ),
-              SizedBox(width: AppSpacing.lg),
-              
-              // Stats Cards
               Expanded(
                 child: _buildStatCard(
-                  'Total Usuarios',
+                  isMobile ? 'Total' : 'Total Usuarios',
                   _users.length.toString(),
                   Icons.people,
                   AppColors.primary,
                   isDark,
                 ),
               ),
-              SizedBox(width: AppSpacing.md),
+              SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
               Expanded(
                 child: _buildStatCard(
-                  'Activos',
+                  isMobile ? 'Activos' : 'Activos',
                   _users.where((u) => u.isActiveUser).length.toString(),
                   Icons.check_circle,
                   AppColors.success,
                   isDark,
                 ),
               ),
-              SizedBox(width: AppSpacing.md),
+              SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
               Expanded(
                 child: _buildStatCard(
-                  'Administradores',
+                  isMobile ? 'Admins' : 'Administradores',
                   _users.where((u) => u.isAdmin).length.toString(),
                   Icons.admin_panel_settings,
                   AppColors.warning,
@@ -204,14 +246,17 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color, bool isDark) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Container(
-      padding: AppSpacing.paddingMD,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingMD,
       decoration: BoxDecoration(
         gradient: isDark ? null : LinearGradient(
           colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
         ),
         color: isDark ? color.withOpacity(0.1) : null,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
@@ -219,21 +264,25 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              SizedBox(width: AppSpacing.xs),
-              Text(
-                title,
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+              Icon(icon, color: color, size: isMobile ? 14 : 20),
+              SizedBox(width: isMobile ? 4 : AppSpacing.xs),
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isMobile ? 10 : null,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          SizedBox(height: AppSpacing.xs),
+          SizedBox(height: isMobile ? 2 : AppSpacing.xs),
           Text(
             value,
-            style: AppTypography.headlineMedium.copyWith(
+            style: (isMobile ? AppTypography.titleLarge : AppTypography.headlineMedium).copyWith(
               color: color,
               fontWeight: FontWeight.bold,
             ),
@@ -408,7 +457,21 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
 
   Widget _buildUsersList(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
+    if (isMobile) {
+      // Mobile: Card layout
+      return ListView.builder(
+        padding: AppSpacing.paddingSM,
+        itemCount: _filteredUsers.length,
+        itemBuilder: (context, index) {
+          return _buildUserCard(context, _filteredUsers[index]);
+        },
+      );
+    }
+
+    // Desktop: Table layout
     return Container(
       margin: AppSpacing.paddingXL,
       decoration: BoxDecoration(
@@ -641,6 +704,207 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
     );
   }
 
+  Widget _buildUserCard(BuildContext context, User user) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar and basic info
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              Padding(
+                padding: AppSpacing.paddingSM,
+                child: CircleAvatar(
+                  radius: 30,
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  child: Text(
+                    user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                    style: AppTypography.titleLarge.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              // Info
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.displayName.isNotEmpty ? user.displayName : 'Sin nombre',
+                        style: AppTypography.titleMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.xs),
+                      Text(
+                        user.email,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: AppSpacing.xs),
+                      Row(
+                        children: [
+                          // Role badge
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: user.isAdmin
+                                  ? AppColors.warning.withOpacity(0.1)
+                                  : AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              user.roleDisplayName,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: user.isAdmin ? AppColors.warning : AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Status badge
+              Padding(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: user.isActiveUser
+                        ? AppColors.success.withOpacity(0.1)
+                        : AppColors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    user.isActiveUser ? Icons.check_circle : Icons.cancel,
+                    size: 16,
+                    color: user.isActiveUser ? AppColors.success : AppColors.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Divider(height: 1),
+          // UID and last login
+          Padding(
+            padding: AppSpacing.paddingSM,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.fingerprint,
+                      size: 14,
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                    ),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'UID: ${user.uid}',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                          fontFamily: 'monospace',
+                          fontSize: 10,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: AppSpacing.xs),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 14,
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Último acceso: ${user.lastLoginAt != null ? _formatDate(user.lastLoginAt!) : 'Nunca'}',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1),
+          // Actions
+          Padding(
+            padding: AppSpacing.paddingSM,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () => _showAddEditDialog(user: user),
+                  icon: Icon(Icons.edit, size: 20),
+                  color: AppColors.primary,
+                  padding: EdgeInsets.all(8),
+                  constraints: BoxConstraints(),
+                  tooltip: 'Editar',
+                ),
+                IconButton(
+                  onPressed: () => _toggleUserStatus(user),
+                  icon: Icon(
+                    user.isActiveUser ? Icons.block : Icons.check_circle,
+                    size: 20,
+                  ),
+                  color: user.isActiveUser ? AppColors.error : AppColors.success,
+                  padding: EdgeInsets.all(8),
+                  constraints: BoxConstraints(),
+                  tooltip: user.isActiveUser ? 'Deshabilitar' : 'Habilitar',
+                ),
+                IconButton(
+                  onPressed: () => _showDeleteDialog(user),
+                  icon: Icon(Icons.delete, size: 20),
+                  color: AppColors.error,
+                  padding: EdgeInsets.all(8),
+                  constraints: BoxConstraints(),
+                  tooltip: 'Eliminar',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -820,140 +1084,188 @@ class _UserDialogState extends State<_UserDialog> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEdit = widget.user != null;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Dialog(
       child: Container(
-        width: 600,
-        padding: AppSpacing.paddingXL,
+        width: isMobile ? screenWidth * 0.95 : 600,
+        padding: isMobile ? AppSpacing.paddingMD : AppSpacing.paddingXL,
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : AppColors.lightBackground,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isEdit ? 'Editar Usuario' : 'Agregar Usuario',
-                style: AppTypography.titleLarge.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: AppSpacing.xl),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: CinemaTextField(
-                      controller: _displayNameController,
-                      label: 'Nombre completo *',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'El nombre es requerido';
-                        }
-                        return null;
-                      },
-                    ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEdit ? 'Editar Usuario' : 'Agregar Usuario',
+                  style: (isMobile ? AppTypography.titleMedium : AppTypography.titleLarge).copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedRole,
-                      decoration: InputDecoration(
-                        labelText: 'Rol',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                ),
+                SizedBox(height: isMobile ? AppSpacing.md : AppSpacing.xl),
+
+                // Name and Role
+                if (isMobile)
+                  Column(
+                    children: [
+                      CinemaTextField(
+                        controller: _displayNameController,
+                        label: 'Nombre completo *',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El nombre es requerido';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: AppSpacing.sm),
+                      DropdownButtonFormField<String>(
+                        value: _selectedRole,
+                        decoration: InputDecoration(
+                          labelText: 'Rol',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: [
+                          DropdownMenuItem(value: 'user', child: Text('Usuario')),
+                          DropdownMenuItem(value: 'employee', child: Text('Empleado')),
+                          DropdownMenuItem(value: 'admin', child: Text('Administrador')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedRole = value ?? 'user';
+                          });
+                        },
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CinemaTextField(
+                          controller: _displayNameController,
+                          label: 'Nombre completo *',
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'El nombre es requerido';
+                            }
+                            return null;
+                          },
                         ),
                       ),
-                      items: [
-                        DropdownMenuItem(value: 'user', child: Text('Usuario')),
-                        DropdownMenuItem(value: 'employee', child: Text('Empleado')),
-                        DropdownMenuItem(value: 'admin', child: Text('Administrador')),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedRole = value ?? 'user';
-                        });
-                      },
-                    ),
+                      SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedRole,
+                          decoration: InputDecoration(
+                            labelText: 'Rol',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          items: [
+                            DropdownMenuItem(value: 'user', child: Text('Usuario')),
+                            DropdownMenuItem(value: 'employee', child: Text('Empleado')),
+                            DropdownMenuItem(value: 'admin', child: Text('Administrador')),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedRole = value ?? 'user';
+                            });
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              SizedBox(height: AppSpacing.md),
+                SizedBox(height: AppSpacing.md),
 
-              CinemaTextField(
-                controller: _emailController,
-                label: 'Correo electrónico *',
-                enabled: !isEdit, // No editar email en modo edición
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El correo es requerido';
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                    return 'Ingresa un correo válido';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: AppSpacing.md),
-
-              if (!isEdit)
                 CinemaTextField(
-                  controller: _passwordController,
-                  label: 'Contraseña *',
-                  obscureText: true,
+                  controller: _emailController,
+                  label: 'Correo electrónico *',
+                  enabled: !isEdit, // No editar email en modo edición
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'La contraseña es requerida';
+                      return 'El correo es requerido';
                     }
-                    if (value.length < 6) {
-                      return 'La contraseña debe tener al menos 6 caracteres';
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      return 'Ingresa un correo válido';
                     }
                     return null;
                   },
                 ),
-              
-              if (isEdit) ...[
                 SizedBox(height: AppSpacing.md),
+
+                if (!isEdit)
+                  CinemaTextField(
+                    controller: _passwordController,
+                    label: 'Contraseña *',
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'La contraseña es requerida';
+                      }
+                      if (value.length < 6) {
+                        return 'La contraseña debe tener al menos 6 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+
+                if (isEdit) ...[
+                  SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Switch(
+                        value: _disabled,
+                        onChanged: (value) {
+                          setState(() {
+                            _disabled = value;
+                          });
+                        },
+                        activeColor: AppColors.error,
+                      ),
+                      SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'Usuario deshabilitado',
+                        style: AppTypography.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ],
+
+                SizedBox(height: isMobile ? AppSpacing.md : AppSpacing.xl),
+
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Switch(
-                      value: _disabled,
-                      onChanged: (value) {
-                        setState(() {
-                          _disabled = value;
-                        });
-                      },
-                      activeColor: AppColors.error,
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: isMobile
+                          ? TextButton.styleFrom(
+                              padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                              textStyle: TextStyle(fontSize: 12),
+                            )
+                          : null,
+                      child: Text('Cancelar'),
                     ),
-                    SizedBox(width: AppSpacing.sm),
-                    Text(
-                      'Usuario deshabilitado',
-                      style: AppTypography.bodyMedium,
+                    SizedBox(width: AppSpacing.md),
+                    CinemaButton(
+                      text: isEdit ? 'Guardar' : 'Crear',
+                      onPressed: _saveUser,
+                      size: isMobile ? ButtonSize.small : ButtonSize.medium,
                     ),
                   ],
                 ),
               ],
-              
-              SizedBox(height: AppSpacing.xl),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('Cancelar'),
-                  ),
-                  SizedBox(width: AppSpacing.md),
-                  CinemaButton(
-                    text: isEdit ? 'Guardar' : 'Crear',
-                    onPressed: _saveUser,
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

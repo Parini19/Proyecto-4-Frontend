@@ -312,23 +312,27 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
       );
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final crossAxisCount = isMobile ? 2 : 4;
+
     return GridView.builder(
-      padding: AppSpacing.pagePadding,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.pagePadding,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 0.55, // Adjusted for standard movie poster ratio (2:3.6)
-        crossAxisSpacing: AppSpacing.md,
-        mainAxisSpacing: AppSpacing.md,
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: isMobile ? 0.6 : 0.55,
+        crossAxisSpacing: isMobile ? AppSpacing.sm : AppSpacing.md,
+        mainAxisSpacing: isMobile ? AppSpacing.sm : AppSpacing.md,
       ),
       itemCount: _filteredMovies.length,
       itemBuilder: (context, index) {
         final movie = _filteredMovies[index];
-        return _buildMovieCard(movie, isDark);
+        return _buildMovieCard(movie, isDark, isMobile);
       },
     );
   }
 
-  Widget _buildMovieCard(MovieModel movie, bool isDark) {
+  Widget _buildMovieCard(MovieModel movie, bool isDark, bool isMobile) {
     return Container(
       decoration: BoxDecoration(
         color: isDark
@@ -342,6 +346,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
         children: [
           // Movie Poster
           Expanded(
+            flex: isMobile ? 3 : 4,
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.vertical(
@@ -356,6 +361,24 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                     ? Image.network(
                         movie.posterUrl!,
                         fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.primary.withOpacity(0.3),
+                                  AppColors.secondary.withOpacity(0.2),
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        },
                         errorBuilder: (context, error, stackTrace) => Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -370,7 +393,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                           child: Center(
                             child: Icon(
                               Icons.movie,
-                              size: 64,
+                              size: isMobile ? 40 : 64,
                               color: AppColors.primary.withOpacity(0.5),
                             ),
                           ),
@@ -390,7 +413,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                         child: Center(
                           child: Icon(
                             Icons.movie,
-                            size: 64,
+                            size: isMobile ? 40 : 64,
                             color: AppColors.primary.withOpacity(0.5),
                           ),
                         ),
@@ -401,16 +424,19 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
 
           // Movie Info
           Padding(
-            padding: AppSpacing.paddingMD,
+            padding: isMobile
+                ? EdgeInsets.all(AppSpacing.sm)
+                : AppSpacing.paddingMD,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   movie.title,
-                  style: AppTypography.titleMedium.copyWith(
+                  style: (isMobile ? AppTypography.titleSmall : AppTypography.titleMedium).copyWith(
                     fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 1,
+                  maxLines: isMobile ? 2 : 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: AppSpacing.xs),
@@ -418,50 +444,67 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                   movie.genre,
                   style: AppTypography.bodySmall.copyWith(
                     color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    fontSize: isMobile ? 10 : 12,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 14, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
-                    SizedBox(width: 4),
-                    Text(
-                      movie.duration,
-                      style: AppTypography.labelSmall.copyWith(
-                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                if (!isMobile) SizedBox(height: AppSpacing.xs),
+                if (!isMobile)
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 14, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          movie.duration,
+                          style: AppTypography.labelSmall.copyWith(
+                            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    Spacer(),
-                    Icon(Icons.star, size: 14, color: Colors.amber),
-                    SizedBox(width: 4),
-                    Text(
-                      movie.rating,
-                      style: AppTypography.labelSmall.copyWith(
-                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                      SizedBox(width: 8),
+                      Icon(Icons.star, size: 14, color: Colors.amber),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          movie.rating,
+                          style: AppTypography.labelSmall.copyWith(
+                            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.sm),
+                    ],
+                  ),
+                SizedBox(height: isMobile ? AppSpacing.xs : AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _showAddEditDialog(context, isDark, movie: movie),
                         style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                          padding: EdgeInsets.symmetric(
+                            vertical: isMobile ? 4 : AppSpacing.xs,
+                            horizontal: isMobile ? 4 : 8,
+                          ),
                         ),
-                        child: Text('Editar'),
+                        child: Text(
+                          'Editar',
+                          style: TextStyle(fontSize: isMobile ? 10 : 12),
+                        ),
                       ),
                     ),
                     SizedBox(width: AppSpacing.xs),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: AppColors.error),
-                      onPressed: () => _showDeleteDialog(context, movie),
-                      padding: EdgeInsets.zero,
-                      constraints: BoxConstraints(),
+                    SizedBox(
+                      width: isMobile ? 32 : 40,
+                      child: IconButton(
+                        icon: Icon(Icons.delete, color: AppColors.error, size: isMobile ? 16 : 20),
+                        onPressed: () => _showDeleteDialog(context, movie),
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(),
+                      ),
                     ),
                   ],
                 ),

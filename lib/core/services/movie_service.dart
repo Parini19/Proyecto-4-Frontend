@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../models/movie_model.dart';
+import '../config/api_config.dart';
 
 class MovieService {
   final Dio _dio;
-  final String _baseUrl = 'https://localhost:7238/api/movies';
+  String get _baseUrl => '${ApiConfig.baseUrl}/api/movies';
 
   MovieService(this._dio);
 

@@ -177,9 +177,11 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
 
   Widget _buildHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Container(
-      padding: AppSpacing.paddingXL,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingXL,
       decoration: BoxDecoration(
         gradient: isDark ? AppColors.cinemaGradient : null,
         color: isDark ? null : AppColors.lightSurfaceElevated,
@@ -193,156 +195,189 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: isDark ? AppColors.glowShadow : null,
-                ),
-                child: Icon(
-                  Icons.receipt_long,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-              SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Title and Add Button
+          if (isMobile)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      'Gestión de Órdenes de Comida',
-                      style: AppTypography.displaySmall.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.receipt_long,
+                        color: Colors.white,
+                        size: 20,
                       ),
                     ),
-                    SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Administra las órdenes de comida del cinema',
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.textSecondary,
+                    SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Órdenes de Comida',
+                        style: AppTypography.titleLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              CinemaButton(
-                text: 'Nueva Orden',
-                onPressed: () => _showAddEditOrderDialog(),
-                icon: Icons.add,
-              ),
-            ],
-          ),
-          
-          SizedBox(height: AppSpacing.lg),
-          
-          // Search and Stats
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Buscar órdenes...',
-                    prefixIcon: Icon(Icons.search),
-                    filled: true,
-                    fillColor: isDark
-                        ? AppColors.darkSurfaceVariant
-                        : AppColors.lightSurfaceVariant,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.md,
-                    ),
+                SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: CinemaButton(
+                    text: 'Nueva Orden',
+                    onPressed: () => _showAddEditOrderDialog(),
+                    icon: Icons.add,
+                    size: ButtonSize.small,
                   ),
-                  onChanged: _onSearchChanged,
                 ),
-              ),
-              SizedBox(width: AppSpacing.md),
-              _buildRefreshButton(),
-            ],
+              ],
+            )
+          else
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: isDark ? AppColors.glowShadow : null,
+                  ),
+                  child: Icon(
+                    Icons.receipt_long,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gestión de Órdenes de Comida',
+                        style: AppTypography.displaySmall.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Administra las órdenes de comida del cinema',
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                CinemaButton(
+                  text: 'Nueva Orden',
+                  onPressed: () => _showAddEditOrderDialog(),
+                  icon: Icons.add,
+                ),
+              ],
+            ),
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.xl),
+
+          // Search Bar
+          CinemaTextField(
+            label: 'Buscar órdenes...',
+            prefixIcon: Icons.search,
+            onChanged: _onSearchChanged,
           ),
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.md),
 
-          SizedBox(height: AppSpacing.lg),
-
-          // Stats Row
+          // Stats Cards
           if (_orders.isNotEmpty) _buildStatsRow(),
         ],
       ),
     );
   }
 
-  Widget _buildRefreshButton() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: IconButton(
-        onPressed: _loadData,
-        icon: Icon(Icons.refresh, color: Colors.white),
-        tooltip: 'Actualizar',
-      ),
-    );
-  }
-
   Widget _buildStatsRow() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     final totalOrders = _orders.length;
     final pendingOrders = _orders.where((o) => o.status == FoodOrder.statusPending).length;
-    final preparingOrders = _orders.where((o) => o.status == FoodOrder.statusPreparing).length;
     final readyOrders = _orders.where((o) => o.status == FoodOrder.statusReady).length;
-    final doneOrders = _orders.where((o) => o.status == FoodOrder.statusDone).length;
 
     return Row(
       children: [
-        Expanded(child: _buildStatCard('Total', '$totalOrders', Icons.receipt_long, AppColors.primary)),
-        SizedBox(width: AppSpacing.md),
-        Expanded(child: _buildStatCard('Pendientes', '$pendingOrders', Icons.pending, const Color(0xFFF59E0B))),
-        SizedBox(width: AppSpacing.md),
-        Expanded(child: _buildStatCard('Preparando', '$preparingOrders', Icons.kitchen, const Color(0xFF3B82F6))),
-        SizedBox(width: AppSpacing.md),
-        Expanded(child: _buildStatCard('Listos', '$readyOrders', Icons.check_circle, AppColors.success)),
-        SizedBox(width: AppSpacing.md),
-        Expanded(child: _buildStatCard('Completados', '$doneOrders', Icons.done_all, const Color(0xFF059669))),
+        Expanded(
+          child: _buildStatCard(
+            isMobile ? 'Total' : 'Total',
+            '$totalOrders',
+            Icons.receipt_long,
+            AppColors.primary,
+          ),
+        ),
+        SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
+        Expanded(
+          child: _buildStatCard(
+            isMobile ? 'Pend.' : 'Pendientes',
+            '$pendingOrders',
+            Icons.pending,
+            const Color(0xFFF59E0B),
+          ),
+        ),
+        SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
+        Expanded(
+          child: _buildStatCard(
+            isMobile ? 'Listos' : 'Listos',
+            '$readyOrders',
+            Icons.check_circle,
+            AppColors.success,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Container(
-      padding: AppSpacing.paddingMD,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingMD,
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 24),
-          SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              Icon(icon, color: color, size: isMobile ? 14 : 20),
+              SizedBox(width: isMobile ? 4 : AppSpacing.xs),
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isMobile ? 10 : null,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 2 : AppSpacing.xs),
           Text(
             value,
-            style: AppTypography.titleLarge.copyWith(
+            style: (isMobile ? AppTypography.titleLarge : AppTypography.headlineMedium).copyWith(
               color: color,
               fontWeight: FontWeight.bold,
             ),
-          ),
-          Builder(
-            builder: (context) {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              return Text(
-                title,
-                style: AppTypography.bodySmall.copyWith(
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                ),
-              );
-            }
           ),
         ],
       ),
@@ -447,7 +482,21 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
 
   Widget _buildOrdersList() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
+    if (isMobile) {
+      // Mobile: Card layout
+      return ListView.builder(
+        padding: AppSpacing.paddingSM,
+        itemCount: _filteredOrders.length,
+        itemBuilder: (context, index) {
+          return _buildOrderCard(context, _filteredOrders[index]);
+        },
+      );
+    }
+
+    // Desktop: Table layout
     return Container(
       margin: AppSpacing.paddingXL,
       decoration: BoxDecoration(
@@ -698,6 +747,231 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
                       }
                     },
                   ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderCard(BuildContext context, FoodOrder order) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with order ID and status
+          Padding(
+            padding: AppSpacing.paddingSM,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Order ID and items count
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '#${order.id.length > 8 ? order.id.substring(0, 8) : order.id}',
+                        style: AppTypography.titleMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        '${order.foodComboIds.length} items',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Status badge
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: FoodOrder.getStatusColor(order.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: FoodOrder.getStatusColor(order.status).withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    order.statusDisplayName,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: FoodOrder.getStatusColor(order.status),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1),
+          // Order details
+          Padding(
+            padding: AppSpacing.paddingSM,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // User ID
+                Row(
+                  children: [
+                    Icon(
+                      Icons.person,
+                      size: 14,
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                    ),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        order.userId.length > 20 ? '${order.userId.substring(0, 20)}...' : order.userId,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          fontSize: 11,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: AppSpacing.xs),
+                // Date
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      order.createdAt != null
+                          ? '${order.createdAt!.day}/${order.createdAt!.month}/${order.createdAt!.year}'
+                          : 'N/A',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1),
+          // Price and actions
+          Padding(
+            padding: AppSpacing.paddingSM,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  CurrencyFormatter.formatCRC(order.totalPrice),
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.success,
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, size: 20),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: FoodOrder.statusPending,
+                      child: Row(
+                        children: [
+                          Icon(Icons.pending, size: 16, color: FoodOrder.getStatusColor(FoodOrder.statusPending)),
+                          SizedBox(width: 8),
+                          Text('Pendiente', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: FoodOrder.statusPreparing,
+                      child: Row(
+                        children: [
+                          Icon(Icons.kitchen, size: 16, color: FoodOrder.getStatusColor(FoodOrder.statusPreparing)),
+                          SizedBox(width: 8),
+                          Text('Preparando', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: FoodOrder.statusReady,
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 16, color: FoodOrder.getStatusColor(FoodOrder.statusReady)),
+                          SizedBox(width: 8),
+                          Text('Listo', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: FoodOrder.statusDelivered,
+                      child: Row(
+                        children: [
+                          Icon(Icons.local_shipping, size: 16, color: FoodOrder.getStatusColor(FoodOrder.statusDelivered)),
+                          SizedBox(width: 8),
+                          Text('Entregado', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: FoodOrder.statusDone,
+                      child: Row(
+                        children: [
+                          Icon(Icons.done_all, size: 16, color: FoodOrder.getStatusColor(FoodOrder.statusDone)),
+                          SizedBox(width: 8),
+                          Text('Completado', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: FoodOrder.statusCancelled,
+                      child: Row(
+                        children: [
+                          Icon(Icons.cancel, size: 16, color: FoodOrder.getStatusColor(FoodOrder.statusCancelled)),
+                          SizedBox(width: 8),
+                          Text('Cancelado', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 16, color: AppColors.error),
+                          SizedBox(width: 8),
+                          Text('Eliminar', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _deleteOrder(order.id);
+                    } else {
+                      _updateOrderStatus(order.id, value);
+                    }
+                  },
                 ),
               ],
             ),

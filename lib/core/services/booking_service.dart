@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../models/booking.dart';
+import '../config/api_config.dart';
 
 class BookingService {
   final Dio _dio;
   final Logger _logger = Logger();
-  final String baseUrl = 'https://localhost:7238/api';
+  String get baseUrl => '${ApiConfig.baseUrl}/api';
 
   BookingService(this._dio);
 

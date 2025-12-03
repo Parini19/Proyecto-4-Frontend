@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../models/audit_log.dart';
+import '../config/api_config.dart';
 
 class AuditLogService {
   final Dio _dio;
   final Logger _logger = Logger();
-  final String baseUrl = 'https://localhost:7238/api';
+  String get baseUrl => '${ApiConfig.baseUrl}/api';
 
   AuditLogService(this._dio);
 

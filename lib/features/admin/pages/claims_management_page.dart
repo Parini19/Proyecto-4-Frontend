@@ -4,6 +4,7 @@ import '../../../core/models/claim_ticket.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/cinema_text_field.dart';
 
 class ClaimsManagementPage extends StatefulWidget {
   const ClaimsManagementPage({super.key});
@@ -110,194 +111,267 @@ class _ClaimsManagementPageState extends State<ClaimsManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 768;
-
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Header
-          Container(
-            padding: AppSpacing.paddingLG,
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.report_problem,
-                      size: 32,
-                      color: AppColors.primary,
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Gestión de Reclamos y Quejas',
-                            style: AppTypography.headlineMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                            ),
-                          ),
-                          Text(
-                            'Administra todos los reclamos y quejas de los usuarios',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.refresh),
-                      onPressed: _loadAllClaims,
-                      tooltip: 'Actualizar',
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
-                
-                // Search and filters row
-                if (!isMobile) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Buscar por título, descripción, usuario o email...',
-                            prefixIcon: Icon(Icons.search),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              _searchQuery = value;
-                            });
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
-                        ),
-                        child: DropdownButton<String>(
-                          value: _selectedStatus,
-                          underline: SizedBox(),
-                          items: _statusFilters.map((status) {
-                            final count = status == 'All'
-                                ? _allClaims.length
-                                : _allClaims.where((c) => c.status == status).length;
-                            return DropdownMenuItem(
-                              value: status,
-                              child: Text('$status ($count)'),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _selectedStatus = value;
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  // Mobile layout
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Buscar reclamos...',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _statusFilters.map((status) {
-                        final isSelected = _selectedStatus == status;
-                        final count = status == 'All'
-                            ? _allClaims.length
-                            : _allClaims.where((c) => c.status == status).length;
-
-                        return Container(
-                          margin: EdgeInsets.only(right: 8),
-                          child: FilterChip(
-                            label: Text('$status ($count)'),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              setState(() {
-                                _selectedStatus = status;
-                              });
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          _buildHeader(context),
 
           // Content
           Expanded(
-            child: _buildContent(isDark, isMobile),
+            child: _buildContent(context),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildContent(bool isDark, bool isMobile) {
+  Widget _buildHeader(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
+    return Container(
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingXL,
+      decoration: BoxDecoration(
+        gradient: isDark ? AppColors.cinemaGradient : null,
+        color: isDark ? null : AppColors.lightSurfaceElevated,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title and Refresh Button
+          if (isMobile)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.report_problem,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Reclamos',
+                        style: AppTypography.titleLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.refresh, size: 20),
+                      onPressed: _loadAllClaims,
+                      tooltip: 'Actualizar',
+                      padding: EdgeInsets.all(8),
+                      constraints: BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: isDark ? AppColors.glowShadow : null,
+                  ),
+                  child: Icon(
+                    Icons.report_problem,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gestión de Reclamos y Quejas',
+                        style: AppTypography.displaySmall.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Administra todos los reclamos y quejas de los usuarios',
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.refresh),
+                  onPressed: _loadAllClaims,
+                  tooltip: 'Actualizar',
+                ),
+              ],
+            ),
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.xl),
+
+          // Search Bar
+          CinemaTextField(
+            controller: _searchController,
+            label: 'Buscar por título, descripción, usuario o email...',
+            prefixIcon: Icons.search,
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.md),
+
+          // Stats Cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  isMobile ? 'Total' : 'Total Reclamos',
+                  _allClaims.length.toString(),
+                  Icons.report_problem,
+                  AppColors.primary,
+                  isDark,
+                ),
+              ),
+              SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
+              Expanded(
+                child: _buildStatCard(
+                  isMobile ? 'Abiertos' : 'Abiertos',
+                  _allClaims.where((c) => c.status == 'Open').length.toString(),
+                  Icons.schedule,
+                  AppColors.warning,
+                  isDark,
+                ),
+              ),
+              SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
+              Expanded(
+                child: _buildStatCard(
+                  isMobile ? 'Cerrados' : 'Cerrados',
+                  _allClaims.where((c) => c.status == 'Closed').length.toString(),
+                  Icons.check_circle,
+                  AppColors.success,
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.md),
+
+          // Status Filter Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _statusFilters.map((status) {
+                final isSelected = _selectedStatus == status;
+                final count = status == 'All'
+                    ? _allClaims.length
+                    : _allClaims.where((c) => c.status == status).length;
+
+                return Container(
+                  margin: EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text('$status ($count)'),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedStatus = status;
+                      });
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, bool isDark) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
+    return Container(
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingMD,
+      decoration: BoxDecoration(
+        gradient: isDark ? null : LinearGradient(
+          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+        ),
+        color: isDark ? color.withOpacity(0.1) : null,
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: isMobile ? 14 : 20),
+              SizedBox(width: isMobile ? 4 : AppSpacing.xs),
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isMobile ? 10 : null,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 2 : AppSpacing.xs),
+          Text(
+            value,
+            style: (isMobile ? AppTypography.titleLarge : AppTypography.headlineMedium).copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     if (_isLoading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(color: AppColors.primary),
-            SizedBox(height: 16),
+            SizedBox(height: AppSpacing.md),
             Text(
               'Cargando reclamos...',
-              style: AppTypography.bodyMedium.copyWith(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -307,66 +381,27 @@ class _ClaimsManagementPageState extends State<ClaimsManagementPage> {
 
     if (_error != null) {
       return Center(
-        child: Padding(
-          padding: AppSpacing.pagePadding,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: AppColors.error,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Error al cargar reclamos',
-                style: AppTypography.headlineSmall,
-              ),
-              SizedBox(height: 8),
-              Text(
-                _error!,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loadAllClaims,
-                child: Text('Reintentar'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_filteredClaims.isEmpty) {
-      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              _searchQuery.isNotEmpty || _selectedStatus != 'All'
-                  ? Icons.search_off
-                  : Icons.inbox_outlined,
+              Icons.error_outline,
               size: 64,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+              color: AppColors.error,
             ),
-            SizedBox(height: 16),
+            SizedBox(height: AppSpacing.lg),
             Text(
-              _searchQuery.isNotEmpty || _selectedStatus != 'All'
-                  ? 'No se encontraron reclamos'
-                  : 'No hay reclamos registrados',
-              style: AppTypography.headlineSmall,
+              'Error al cargar reclamos',
+              style: AppTypography.titleLarge.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: AppSpacing.sm),
             Text(
-              _searchQuery.isNotEmpty || _selectedStatus != 'All'
-                  ? 'Prueba cambiar los filtros de búsqueda'
-                  : 'Los reclamos aparecerán aquí cuando los usuarios los envíen',
+              _error ?? 'Ha ocurrido un error inesperado',
               style: AppTypography.bodyMedium.copyWith(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -375,16 +410,134 @@ class _ClaimsManagementPageState extends State<ClaimsManagementPage> {
       );
     }
 
+    if (_filteredClaims.isEmpty && _searchQuery.isNotEmpty) {
+      return _buildNoResultsFound();
+    }
+
+    if (_filteredClaims.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return _buildClaimsList(context);
+  }
+
+  Widget _buildNoResultsFound() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Icon(
+                Icons.search_off,
+                size: 64,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              );
+            }
+          ),
+          SizedBox(height: AppSpacing.lg),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'No se encontraron resultados',
+                style: AppTypography.titleLarge.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
+          ),
+          SizedBox(height: AppSpacing.sm),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'Intenta con otros términos de búsqueda',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+              );
+            }
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Icon(
+                Icons.inbox_outlined,
+                size: 64,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              );
+            }
+          ),
+          SizedBox(height: AppSpacing.lg),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'No hay reclamos registrados',
+                style: AppTypography.titleLarge.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
+          ),
+          SizedBox(height: AppSpacing.sm),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                'Los reclamos aparecerán aquí cuando los usuarios los envíen',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+              );
+            }
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClaimsList(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
+    if (isMobile) {
+      // Mobile: Card layout
+      return ListView.builder(
+        padding: AppSpacing.paddingSM,
+        itemCount: _filteredClaims.length,
+        itemBuilder: (context, index) {
+          return _buildClaimMobileCard(context, _filteredClaims[index]);
+        },
+      );
+    }
+
+    // Desktop: Keep existing card layout
     return ListView.builder(
       padding: EdgeInsets.all(16),
       itemCount: _filteredClaims.length,
       itemBuilder: (context, index) {
-        return _buildClaimCard(_filteredClaims[index], isDark, isMobile);
+        return _buildClaimCard(_filteredClaims[index], isDark);
       },
     );
   }
 
-  Widget _buildClaimCard(ClaimTicket claim, bool isDark, bool isMobile) {
+  Widget _buildClaimCard(ClaimTicket claim, bool isDark) {
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -534,6 +687,146 @@ class _ClaimsManagementPageState extends State<ClaimsManagementPage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClaimMobileCard(BuildContext context, ClaimTicket claim) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          _showClaimDetails(claim);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with title and status
+            Padding(
+              padding: AppSpacing.paddingSM,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          claim.title,
+                          style: AppTypography.titleMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: AppSpacing.xs),
+                      _buildStatusChip(claim.status, isDark),
+                    ],
+                  ),
+                  SizedBox(height: AppSpacing.xs),
+                  Text(
+                    claim.userEmail.isNotEmpty ? claim.userEmail : claim.userId,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1),
+            // Description
+            Padding(
+              padding: AppSpacing.paddingSM,
+              child: Text(
+                claim.description,
+                style: AppTypography.bodySmall.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Divider(height: 1),
+            // Footer with date and actions
+            Padding(
+              padding: AppSpacing.paddingSM,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.access_time,
+                    size: 14,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                  SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      _formatDate(claim.createdAt),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (action) {
+                      if (action.startsWith('status:')) {
+                        final newStatus = action.substring(7);
+                        _updateClaimStatus(claim, newStatus);
+                      }
+                    },
+                    icon: Icon(Icons.more_vert, size: 20),
+                    padding: EdgeInsets.all(8),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'status:Open',
+                        child: Row(
+                          children: [
+                            Icon(Icons.schedule, size: 16, color: AppColors.warning),
+                            SizedBox(width: 8),
+                            Text('Abierto'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'status:InProgress',
+                        child: Row(
+                          children: [
+                            Icon(Icons.hourglass_bottom, size: 16, color: AppColors.primary),
+                            SizedBox(width: 8),
+                            Text('En Progreso'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'status:Closed',
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle, size: 16, color: AppColors.success),
+                            SizedBox(width: 8),
+                            Text('Cerrado'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

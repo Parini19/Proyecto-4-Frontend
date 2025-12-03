@@ -91,9 +91,11 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
 
   Widget _buildHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Container(
-      padding: AppSpacing.paddingXL,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingXL,
       decoration: BoxDecoration(
         gradient: isDark ? AppColors.cinemaGradient : null,
         color: isDark ? null : AppColors.lightSurfaceElevated,
@@ -107,90 +109,130 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: isDark ? AppColors.glowShadow : null,
-                ),
-                child: Icon(
-                  Icons.fastfood,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-              SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Title and Add Button
+          if (isMobile)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      'Gestión de Combos de Comida',
-                      style: AppTypography.displaySmall.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.fastfood,
+                        color: Colors.white,
+                        size: 20,
                       ),
                     ),
-                    SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Administra los combos de comida disponibles en el cinema',
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.textSecondary,
+                    SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Combos de Comida',
+                        style: AppTypography.titleLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              CinemaButton(
-                text: 'Agregar Combo',
-                onPressed: () => _showAddEditDialog(),
-                icon: Icons.add,
-              ),
-            ],
+                SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: CinemaButton(
+                    text: 'Agregar Combo',
+                    onPressed: () => _showAddEditDialog(),
+                    icon: Icons.add,
+                    size: ButtonSize.small,
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: isDark ? AppColors.glowShadow : null,
+                  ),
+                  child: Icon(
+                    Icons.fastfood,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gestión de Combos de Comida',
+                        style: AppTypography.displaySmall.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Administra los combos de comida disponibles en el cinema',
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                CinemaButton(
+                  text: 'Agregar Combo',
+                  onPressed: () => _showAddEditDialog(),
+                  icon: Icons.add,
+                ),
+              ],
+            ),
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.xl),
+
+          // Search Bar
+          CinemaTextField(
+            label: 'Buscar combos...',
+            prefixIcon: Icons.search,
+            onChanged: _filterCombos,
           ),
-          SizedBox(height: AppSpacing.xl),
-          
-          // Search and Stats
+          SizedBox(height: isMobile ? AppSpacing.sm : AppSpacing.md),
+
+          // Stats Cards
           Row(
             children: [
-              // Search Bar
-              Expanded(
-                flex: 2,
-                child: CinemaTextField(
-                  label: 'Buscar combos...',
-                  prefixIcon: Icons.search,
-                  onChanged: _filterCombos,
-                ),
-              ),
-              SizedBox(width: AppSpacing.lg),
-              
-              // Stats Cards
               Expanded(
                 child: _buildStatCard(
-                  'Total Combos',
+                  isMobile ? 'Total' : 'Total Combos',
                   _combos.length.toString(),
                   Icons.fastfood,
                   AppColors.primary,
                   isDark,
                 ),
               ),
-              SizedBox(width: AppSpacing.md),
+              SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
               Expanded(
                 child: _buildStatCard(
-                  'Disponibles',
+                  isMobile ? 'Disp.' : 'Disponibles',
                   _combos.where((c) => c.isAvailable).length.toString(),
                   Icons.check_circle,
                   AppColors.success,
                   isDark,
                 ),
               ),
-              SizedBox(width: AppSpacing.md),
+              SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
               Expanded(
                 child: _buildStatCard(
-                  'No Disponibles',
+                  isMobile ? 'No Disp.' : 'No Disponibles',
                   _combos.where((c) => !c.isAvailable).length.toString(),
                   Icons.cancel,
                   AppColors.error,
@@ -205,14 +247,17 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color, bool isDark) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Container(
-      padding: AppSpacing.paddingMD,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.paddingMD,
       decoration: BoxDecoration(
         gradient: isDark ? null : LinearGradient(
           colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
         ),
         color: isDark ? color.withOpacity(0.1) : null,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
@@ -220,21 +265,25 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              SizedBox(width: AppSpacing.xs),
-              Text(
-                title,
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+              Icon(icon, color: color, size: isMobile ? 14 : 20),
+              SizedBox(width: isMobile ? 4 : AppSpacing.xs),
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isMobile ? 10 : null,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          SizedBox(height: AppSpacing.xs),
+          SizedBox(height: isMobile ? 2 : AppSpacing.xs),
           Text(
             value,
-            style: AppTypography.headlineMedium.copyWith(
+            style: (isMobile ? AppTypography.titleLarge : AppTypography.headlineMedium).copyWith(
               color: color,
               fontWeight: FontWeight.bold,
             ),
@@ -409,7 +458,21 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
 
   Widget _buildCombosList(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
+    if (isMobile) {
+      // Mobile: Card layout
+      return ListView.builder(
+        padding: AppSpacing.paddingSM,
+        itemCount: _filteredCombos.length,
+        itemBuilder: (context, index) {
+          return _buildComboCard(context, _filteredCombos[index]);
+        },
+      );
+    }
+
+    // Desktop: Table layout
     return Container(
       margin: AppSpacing.paddingXL,
       decoration: BoxDecoration(
@@ -668,6 +731,214 @@ class _FoodCombosManagementPageState extends State<FoodCombosManagementPage> {
     );
   }
 
+  Widget _buildComboCard(BuildContext context, FoodCombo combo) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image and basic info
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                  child: combo.imageUrl.isNotEmpty
+                      ? Image.network(
+                          combo.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: AppColors.textTertiary.withOpacity(0.1),
+                              child: Icon(
+                                Icons.fastfood,
+                                color: AppColors.textTertiary,
+                                size: 30,
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: AppColors.textTertiary.withOpacity(0.1),
+                          child: Icon(
+                            Icons.fastfood,
+                            color: AppColors.textTertiary,
+                            size: 30,
+                          ),
+                        ),
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
+              // Info
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        combo.name,
+                        style: AppTypography.titleMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.xs),
+                      if (combo.category.isNotEmpty)
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xs,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            combo.category,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              // Status badge
+              Padding(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: combo.isAvailable
+                        ? AppColors.success.withOpacity(0.1)
+                        : AppColors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    combo.isAvailable ? Icons.check_circle : Icons.cancel,
+                    size: 16,
+                    color: combo.isAvailable ? AppColors.success : AppColors.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Divider(height: 1),
+          // Description
+          Padding(
+            padding: AppSpacing.paddingSM,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  combo.description,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (combo.items.isNotEmpty) ...[
+                  SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Items: ${combo.items.join(', ')}',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                      fontStyle: FontStyle.italic,
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Divider(height: 1),
+          // Price and actions
+          Padding(
+            padding: AppSpacing.paddingSM,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  CurrencyFormatter.formatCRC(combo.price),
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.success,
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => _showAddEditDialog(combo: combo),
+                      icon: Icon(Icons.edit, size: 20),
+                      color: AppColors.primary,
+                      padding: EdgeInsets.all(8),
+                      constraints: BoxConstraints(),
+                      tooltip: 'Editar',
+                    ),
+                    IconButton(
+                      onPressed: () => _toggleAvailability(combo),
+                      icon: Icon(
+                        combo.isAvailable ? Icons.visibility_off : Icons.visibility,
+                        size: 20,
+                      ),
+                      color: AppColors.textSecondary,
+                      padding: EdgeInsets.all(8),
+                      constraints: BoxConstraints(),
+                      tooltip: combo.isAvailable ? 'Desactivar' : 'Activar',
+                    ),
+                    IconButton(
+                      onPressed: () => _showDeleteDialog(combo),
+                      icon: Icon(Icons.delete, size: 20),
+                      color: AppColors.error,
+                      padding: EdgeInsets.all(8),
+                      constraints: BoxConstraints(),
+                      tooltip: 'Eliminar',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddEditDialog({FoodCombo? combo}) {
     showDialog(
       context: context,
@@ -814,135 +1085,212 @@ class _FoodComboDialogState extends State<_FoodComboDialog> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Dialog(
       child: Container(
-        width: 600,
-        padding: AppSpacing.paddingXL,
+        width: isMobile ? screenWidth * 0.95 : 600,
+        padding: isMobile ? AppSpacing.paddingMD : AppSpacing.paddingXL,
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : AppColors.lightBackground,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.combo == null ? 'Agregar Combo' : 'Editar Combo',
-                style: AppTypography.titleLarge.copyWith(
-                  fontWeight: FontWeight.bold,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.combo == null ? 'Agregar Combo' : 'Editar Combo',
+                  style: (isMobile ? AppTypography.titleMedium : AppTypography.titleLarge).copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              SizedBox(height: AppSpacing.xl),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: CinemaTextField(
-                      controller: _nameController,
-                      label: 'Nombre del combo *',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'El nombre es requerido';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: CinemaTextField(
-                      controller: _categoryController,
-                      label: 'Categoría',
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSpacing.md),
+                SizedBox(height: isMobile ? AppSpacing.md : AppSpacing.xl),
 
-              CinemaTextField(
-                controller: _descriptionController,
-                label: 'Descripción *',
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'La descripción es requerida';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: AppSpacing.md),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: CinemaTextField(
-                      controller: _priceController,
-                      label: 'Precio *',
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                      ],
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'El precio es requerido';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Ingresa un precio válido';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Switch(
-                          value: _isAvailable,
-                          onChanged: (value) {
-                            setState(() {
-                              _isAvailable = value;
-                            });
+                // Name and Category
+                if (isMobile)
+                  Column(
+                    children: [
+                      CinemaTextField(
+                        controller: _nameController,
+                        label: 'Nombre del combo *',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El nombre es requerido';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: AppSpacing.sm),
+                      CinemaTextField(
+                        controller: _categoryController,
+                        label: 'Categoría',
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CinemaTextField(
+                          controller: _nameController,
+                          label: 'Nombre del combo *',
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'El nombre es requerido';
+                            }
+                            return null;
                           },
-                          activeColor: AppColors.primary,
                         ),
-                        SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Disponible',
-                          style: AppTypography.bodyMedium,
+                      ),
+                      SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: CinemaTextField(
+                          controller: _categoryController,
+                          label: 'Categoría',
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                SizedBox(height: AppSpacing.md),
+
+                CinemaTextField(
+                  controller: _descriptionController,
+                  label: 'Descripción *',
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'La descripción es requerida';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: AppSpacing.md),
+
+                // Price and Availability
+                if (isMobile)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CinemaTextField(
+                        controller: _priceController,
+                        label: 'Precio *',
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El precio es requerido';
+                          }
+                          if (double.tryParse(value) == null) {
+                            return 'Ingresa un precio válido';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Switch(
+                            value: _isAvailable,
+                            onChanged: (value) {
+                              setState(() {
+                                _isAvailable = value;
+                              });
+                            },
+                            activeColor: AppColors.primary,
+                          ),
+                          SizedBox(width: AppSpacing.sm),
+                          Text(
+                            'Disponible',
+                            style: AppTypography.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CinemaTextField(
+                          controller: _priceController,
+                          label: 'Precio *',
+                          keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          ],
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'El precio es requerido';
+                            }
+                            if (double.tryParse(value) == null) {
+                              return 'Ingresa un precio válido';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Switch(
+                              value: _isAvailable,
+                              onChanged: (value) {
+                                setState(() {
+                                  _isAvailable = value;
+                                });
+                              },
+                              activeColor: AppColors.primary,
+                            ),
+                            SizedBox(width: AppSpacing.sm),
+                            Text(
+                              'Disponible',
+                              style: AppTypography.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                SizedBox(height: AppSpacing.md),
+
+                CinemaTextField(
+                  controller: _itemsController,
+                  label: 'Items del combo (separados por comas)',
+                  maxLines: 2,
+                ),
+                SizedBox(height: isMobile ? AppSpacing.md : AppSpacing.xl),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: isMobile
+                          ? TextButton.styleFrom(
+                              padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                              textStyle: TextStyle(fontSize: 12),
+                            )
+                          : null,
+                      child: Text('Cancelar'),
                     ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSpacing.md),
-
-              CinemaTextField(
-                controller: _itemsController,
-                label: 'Items del combo (separados por comas)',
-                maxLines: 2,
-              ),
-              SizedBox(height: AppSpacing.xl),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('Cancelar'),
-                  ),
-                  SizedBox(width: AppSpacing.md),
-                  CinemaButton(
-                    text: widget.combo == null ? 'Crear' : 'Guardar',
-                    onPressed: _saveFoodCombo,
-                  ),
-                ],
-              ),
-            ],
+                    SizedBox(width: AppSpacing.md),
+                    CinemaButton(
+                      text: widget.combo == null ? 'Crear' : 'Guardar',
+                      onPressed: _saveFoodCombo,
+                      size: isMobile ? ButtonSize.small : ButtonSize.medium,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

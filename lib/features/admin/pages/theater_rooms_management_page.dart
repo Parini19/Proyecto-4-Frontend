@@ -434,8 +434,11 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
   }
 
   Widget _buildTheaterRoomCard(TheaterRoomModel room, bool isDark) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Container(
-      margin: EdgeInsets.only(bottom: AppSpacing.md),
+      margin: EdgeInsets.only(bottom: isMobile ? AppSpacing.sm : AppSpacing.md),
       decoration: BoxDecoration(
         color: isDark
             ? AppColors.darkSurfaceElevated
@@ -447,43 +450,53 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
         boxShadow: isDark ? AppColors.elevatedShadow : AppColors.cardShadow,
       ),
       child: ListTile(
-        contentPadding: AppSpacing.paddingLG,
-        leading: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: AppSpacing.borderRadiusMD,
-            boxShadow: isDark ? AppColors.glowShadow : null,
-          ),
-          child: Icon(
-            Icons.meeting_room,
-            color: Colors.white,
-            size: 28,
-          ),
-        ),
+        contentPadding: isMobile
+            ? EdgeInsets.all(AppSpacing.sm)
+            : AppSpacing.paddingLG,
+        leading: isMobile
+            ? null
+            : Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: AppSpacing.borderRadiusMD,
+                  boxShadow: isDark ? AppColors.glowShadow : null,
+                ),
+                child: Icon(
+                  Icons.meeting_room,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
         title: Text(
           room.name,
-          style: AppTypography.titleMedium.copyWith(
+          style: (isMobile ? AppTypography.titleSmall : AppTypography.titleMedium).copyWith(
             fontWeight: FontWeight.bold,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(height: AppSpacing.xs),
             Row(
               children: [
                 Icon(
                   Icons.event_seat,
-                  size: 16,
+                  size: isMobile ? 14 : 16,
                   color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
                 SizedBox(width: AppSpacing.xs),
-                Text(
-                  'Capacidad: ${room.capacity} asientos',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                Flexible(
+                  child: Text(
+                    'Capacidad: ${room.capacity} asientos',
+                    style: (isMobile ? AppTypography.bodySmall : AppTypography.bodyMedium).copyWith(
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -493,15 +506,19 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
               children: [
                 Icon(
                   Icons.tag,
-                  size: 16,
+                  size: isMobile ? 14 : 16,
                   color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
                 SizedBox(width: AppSpacing.xs),
-                Text(
-                  'ID: ${room.id}',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                    fontFamily: 'monospace',
+                Flexible(
+                  child: Text(
+                    'ID: ${room.id}',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                      fontFamily: 'monospace',
+                      fontSize: isMobile ? 10 : 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -512,14 +529,18 @@ class _TheaterRoomsManagementPageState extends State<TheaterRoomsManagementPage>
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.edit, color: AppColors.primary),
+              icon: Icon(Icons.edit, color: AppColors.primary, size: isMobile ? 20 : 24),
               onPressed: () => _showEditTheaterRoomDialog(room),
               tooltip: 'Editar sala',
+              padding: isMobile ? EdgeInsets.all(8) : null,
+              constraints: isMobile ? BoxConstraints() : null,
             ),
             IconButton(
-              icon: Icon(Icons.delete, color: AppColors.error),
+              icon: Icon(Icons.delete, color: AppColors.error, size: isMobile ? 20 : 24),
               onPressed: () => _showDeleteConfirmation(room),
               tooltip: 'Eliminar sala',
+              padding: isMobile ? EdgeInsets.all(8) : null,
+              constraints: isMobile ? BoxConstraints() : null,
             ),
           ],
         ),
@@ -758,6 +779,8 @@ class _TheaterRoomFormDialogState extends State<_TheaterRoomFormDialog> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
     final normalCount = _seats.where((s) => s.type == SeatType.normal).length;
     final vipCount = _seats.where((s) => s.type == SeatType.vip).length;
     final emptyCount = _seats.where((s) => s.type == SeatType.empty).length;
@@ -766,9 +789,9 @@ class _TheaterRoomFormDialogState extends State<_TheaterRoomFormDialog> {
 
     return Dialog(
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
+        width: MediaQuery.of(context).size.width * (isMobile ? 0.95 : 0.9),
         height: MediaQuery.of(context).size.height * 0.9,
-        padding: AppSpacing.paddingLG,
+        padding: isMobile ? AppSpacing.paddingMD : AppSpacing.paddingLG,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -891,35 +914,66 @@ class _TheaterRoomFormDialogState extends State<_TheaterRoomFormDialog> {
                             // Only show configuration fields if creating OR if editing and seats not yet generated
                             if (widget.room == null || !_seatsGenerated) ...[
                               // Rows and Columns
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: CinemaTextField(
+                              if (isMobile)
+                                Column(
+                                  children: [
+                                    CinemaTextField(
                                       controller: _rowsController,
                                       label: 'Filas',
                                       hint: '1-20',
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                     ),
-                                  ),
-                                  SizedBox(width: AppSpacing.md),
-                                  Expanded(
-                                    child: CinemaTextField(
+                                    SizedBox(height: AppSpacing.sm),
+                                    CinemaTextField(
                                       controller: _colsController,
                                       label: 'Columnas',
                                       hint: '1-30',
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                     ),
-                                  ),
-                                  SizedBox(width: AppSpacing.md),
-                                  CinemaButton(
-                                    text: 'Generar',
-                                    icon: Icons.grid_on,
-                                    onPressed: _generateSeats,
-                                  ),
-                                ],
-                              ),
+                                    SizedBox(height: AppSpacing.sm),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: CinemaButton(
+                                        text: 'Generar',
+                                        icon: Icons.grid_on,
+                                        onPressed: _generateSeats,
+                                        size: ButtonSize.small,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: CinemaTextField(
+                                        controller: _rowsController,
+                                        label: 'Filas',
+                                        hint: '1-20',
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                      ),
+                                    ),
+                                    SizedBox(width: AppSpacing.md),
+                                    Expanded(
+                                      child: CinemaTextField(
+                                        controller: _colsController,
+                                        label: 'Columnas',
+                                        hint: '1-30',
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                      ),
+                                    ),
+                                    SizedBox(width: AppSpacing.md),
+                                    CinemaButton(
+                                      text: 'Generar',
+                                      icon: Icons.grid_on,
+                                      onPressed: _generateSeats,
+                                    ),
+                                  ],
+                                ),
                             ],
 
                             if (_seatsGenerated) ...[
@@ -1028,6 +1082,12 @@ class _TheaterRoomFormDialogState extends State<_TheaterRoomFormDialog> {
               children: [
                 TextButton(
                   onPressed: _isLoading ? null : () => Navigator.pop(context),
+                  style: isMobile
+                      ? TextButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                          textStyle: TextStyle(fontSize: 12),
+                        )
+                      : null,
                   child: Text('Cancelar'),
                 ),
                 SizedBox(width: AppSpacing.sm),
@@ -1035,6 +1095,7 @@ class _TheaterRoomFormDialogState extends State<_TheaterRoomFormDialog> {
                   text: widget.room == null ? 'Crear Sala' : 'Guardar Cambios',
                   icon: Icons.save,
                   isFullWidth: false,
+                  size: isMobile ? ButtonSize.small : ButtonSize.medium,
                   onPressed: _isLoading ? null : _saveTheaterRoom,
                 ),
               ],

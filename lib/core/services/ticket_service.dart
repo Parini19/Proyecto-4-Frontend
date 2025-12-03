@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../models/ticket.dart';
+import '../config/api_config.dart';
 
 class TicketService {
   final Dio _dio;
   final Logger _logger = Logger();
-  final String baseUrl = 'https://localhost:7238/api';
+  String get baseUrl => '${ApiConfig.baseUrl}/api';
 
   TicketService(this._dio);
 

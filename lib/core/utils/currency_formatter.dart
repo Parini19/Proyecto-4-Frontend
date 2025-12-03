@@ -22,6 +22,15 @@ class CurrencyFormatter {
     return formatter.format(roundedAmount);
   }
 
+  /// Formats a number as Costa Rican Colones for PDF export
+  /// Uses "CRC" instead of ₡ symbol for better PDF compatibility
+  /// Example: 3500 -> CRC 3,500
+  static String formatCRCForPDF(double amount) {
+    final roundedAmount = amount.round();
+    final formatter = NumberFormat('#,###', 'es_CR');
+    return 'CRC ${formatter.format(roundedAmount)}';
+  }
+
   /// Parses a CRC string back to a number
   /// Example: "₡3,500" -> 3500.0
   /// Example: "3,500" -> 3500.0

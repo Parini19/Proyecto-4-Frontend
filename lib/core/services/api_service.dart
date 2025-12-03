@@ -1,10 +1,26 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Base URL - Cambiar según el ambiente
-  static const String _baseUrl = 'https://localhost:7238/api';
+  // Base URL - Detección automática según plataforma
+  static String get _baseUrl {
+    if (kIsWeb) {
+      // Web: usa localhost con HTTPS
+      return 'https://localhost:7238/api';
+    } else if (Platform.isAndroid) {
+      // Android: usa 10.0.2.2 (apunta al localhost del host) con HTTP
+      return 'http://10.0.2.2:5000/api';
+    } else if (Platform.isIOS) {
+      // iOS: usa localhost
+      return 'http://localhost:5000/api';
+    } else {
+      // Desktop (Windows/Mac/Linux): usa localhost con HTTP
+      return 'http://localhost:5000/api';
+    }
+  }
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();

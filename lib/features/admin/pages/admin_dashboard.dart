@@ -9,6 +9,7 @@ import '../../../core/providers/service_providers.dart';
 import '../../../core/providers/movies_provider.dart';
 import '../../../core/models/food_item.dart';
 import '../../../core/widgets/floating_chat_bubble.dart';
+import '../widgets/admin_chat_bubble.dart';
 import 'movies_management_page.dart';
 import 'screenings_management_page.dart';
 import 'theater_rooms_management_page.dart';
@@ -84,8 +85,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ],
           ),
 
-          // Chat IA flotante
+          // Chat IA flotante (cliente)
           const FloatingChatBubble(),
+
+          // Chat Admin (análisis y reportes)
+          const AdminChatBubble(),
         ],
       ),
     );
@@ -192,7 +196,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 _buildNavItem(
                   icon: Icons.fastfood,
-                  label: 'Food Combos',
+                  label: 'Combos de Comida',
                   index: 5,
                   isDark: isDark,
                 ),
@@ -581,7 +585,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 _buildDrawerNavItem(
                   icon: Icons.fastfood,
-                  label: 'Food Combos',
+                  label: 'Combos de Comida',
                   index: 5,
                   isDark: isDark,
                 ),
@@ -772,7 +776,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 2: return 'Películas';
       case 3: return 'Funciones';
       case 4: return 'Salas de Cine';
-      case 5: return 'Food Combos';
+      case 5: return 'Combos de Comida';
       case 6: return 'Órdenes de Comida';
       case 7: return 'Usuarios';
       case 8: return 'Reclamos';
@@ -1029,30 +1033,42 @@ class _DashboardOverview extends ConsumerWidget {
                 final isMobile = screenWidth < 768.0;
                 
                 if (isMobile) {
-                  // Mobile: Stack vertically or 2 per row for very small screens
-                  return Column(
-                    children: [
-                      _buildQuickStatCard(
-                        title: 'Ocupación Promedio',
-                        value: '78%',
-                        icon: Icons.event_seat,
-                        isDark: isDark,
-                      ),
-                      SizedBox(height: AppSpacing.md),
-                      _buildQuickStatCard(
-                        title: 'Película Más Vista',
-                        value: 'Avatar 2',
-                        icon: Icons.star,
-                        isDark: isDark,
-                      ),
-                      SizedBox(height: AppSpacing.md),
-                      _buildQuickStatCard(
-                        title: 'Sala Más Usada',
-                        value: 'Sala 3',
-                        icon: Icons.meeting_room,
-                        isDark: isDark,
-                      ),
-                    ],
+                  // Mobile: Horizontal scroll in one line
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 200,
+                          child: _buildQuickStatCard(
+                            title: 'Ocupación Promedio',
+                            value: '78%',
+                            icon: Icons.event_seat,
+                            isDark: isDark,
+                          ),
+                        ),
+                        SizedBox(width: AppSpacing.md),
+                        SizedBox(
+                          width: 200,
+                          child: _buildQuickStatCard(
+                            title: 'Película Más Vista',
+                            value: 'Avatar 2',
+                            icon: Icons.star,
+                            isDark: isDark,
+                          ),
+                        ),
+                        SizedBox(width: AppSpacing.md),
+                        SizedBox(
+                          width: 200,
+                          child: _buildQuickStatCard(
+                            title: 'Sala Más Usada',
+                            value: 'Sala 3',
+                            icon: Icons.meeting_room,
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 } else {
                   // Desktop & Tablet: All in one row

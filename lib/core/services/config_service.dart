@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
+import '../config/api_config.dart';
 
 class ConfigService {
   final Dio _dio = Dio();
-  final String _baseUrl = 'https://localhost:7238/api/config';
+  String get _baseUrl => '${ApiConfig.baseUrl}/api/config';
 
   /// Get current audit logging status
   Future<bool> getAuditLoggingStatus() async {
