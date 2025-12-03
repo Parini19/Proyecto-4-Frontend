@@ -21,6 +21,7 @@ import '../user/pages/my_tickets_page.dart';
 import '../user/pages/purchase_history_page.dart';
 import '../user/pages/promotions_page.dart';
 import '../user/pages/profile_page.dart';
+import '../claims/widgets/new_claim_modal.dart';
 
 import 'dart:async';
 
@@ -635,6 +636,16 @@ class _HomePageState extends ConsumerState<HomePage> {
               ],
             ),
           ),
+          PopupMenuItem(
+            value: 'claims',
+            child: Row(
+              children: [
+                Icon(Icons.report_problem_outlined, size: 20),
+                SizedBox(width: 12),
+                Text('Reclamos y Quejas'),
+              ],
+            ),
+          ),
           if (_userService.isAdmin()) ...[
             PopupMenuDivider(),
             PopupMenuItem(
@@ -689,6 +700,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PurchaseHistoryPage()),
+            );
+          } else if (value == 'claims') {
+            showDialog(
+              context: context,
+              builder: (context) => const NewClaimModal(),
             );
           }
         },
@@ -1041,7 +1057,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildMovieCard(MovieModel movie, bool isDark, Size size) {
     final isDesktop = size.width > 1024;
-    final cardWidth = isDesktop ? 250.0 : 180.0;
+    final isMobile = size.width < 768;
+    final isVerySmallMobile = size.width < 400;
+    final cardWidth = isDesktop ? 250.0 : (isMobile ? 160.0 : 180.0);
 
     // Safe color handling
     final hasColors = movie.colors.isNotEmpty;
@@ -1084,8 +1102,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Gradiente de fondo (fallback si no hay poster)
-                      if (movie.posterUrl == null || movie.posterUrl!.isEmpty)
+                      // Disable images on very small mobile screens or show fallback
+                      if (isVerySmallMobile || movie.posterUrl == null || movie.posterUrl!.isEmpty)
                         Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -1095,15 +1113,37 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                           ),
                           child: Center(
-                            child: Icon(
-                              Icons.movie_outlined,
-                              size: 64,
-                              color: Colors.white.withOpacity(0.2),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.movie_outlined,
+                                  size: isMobile ? 32 : 48,
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                                if (isMobile) ...[
+                                  SizedBox(height: 8),
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 8),
+                                    child: Text(
+                                      movie.title,
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         )
-                      // Imagen del poster
-                      else
+                      // Imagen del poster (only on larger screens)
+                      else if (!isVerySmallMobile)
                         Image.network(
                           movie.posterUrl!,
                           fit: BoxFit.cover,
@@ -1117,10 +1157,32 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 ),
                               ),
                               child: Center(
-                                child: Icon(
-                                  Icons.movie_outlined,
-                                  size: 64,
-                                  color: Colors.white.withOpacity(0.2),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.movie_outlined,
+                                      size: isMobile ? 32 : 48,
+                                      color: Colors.white.withOpacity(0.8),
+                                    ),
+                                    if (isMobile) ...[
+                                      SizedBox(height: 8),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8),
+                                        child: Text(
+                                          movie.title,
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.9),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                             );
@@ -1498,6 +1560,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                   _showComingSoonMessage('Perfil próximamente');
                 },
               ),
+              ListTile(
+                leading: Icon(Icons.report_problem_outlined),
+                title: Text('Reclamos y Quejas'),
+                onTap: () {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (context) => const NewClaimModal(),
+                  );
+                },
+              ),
               if (_userService.isAdmin()) ...[
                 Divider(),
                 ListTile(
@@ -1721,8 +1794,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     // Detect screen size for responsive design
     final isMobile = size.width < 768;
-    final isTablet = size.width >= 768 && size.width < 1024;
-    final isDesktop = size.width >= 1024;
 
     // Mobile: Portrait-optimized with overlay (current design works well)
     if (isMobile) {

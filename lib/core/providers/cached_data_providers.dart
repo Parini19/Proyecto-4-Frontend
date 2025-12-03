@@ -28,25 +28,26 @@ final cachedScreeningsProvider = FutureProvider<List<Screening>>((ref) async {
 
 /// Helper provider to manually refresh cached data
 /// Usage: ref.read(cacheRefreshProvider.notifier).refreshMovies()
-final cacheRefreshProvider = StateNotifierProvider<CacheRefreshNotifier, void>((ref) {
-  return CacheRefreshNotifier(ref);
+final cacheRefreshProvider = NotifierProvider<CacheRefreshNotifier, int>(() {
+  return CacheRefreshNotifier();
 });
 
-class CacheRefreshNotifier extends StateNotifier<void> {
-  final Ref ref;
-
-  CacheRefreshNotifier(this.ref) : super(null);
+class CacheRefreshNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
 
   /// Manually refresh movies cache
   void refreshMovies() {
     print('🔄 [CACHE] Manually refreshing movies...');
     ref.invalidate(cachedMoviesProvider);
+    state = state + 1;
   }
 
   /// Manually refresh screenings cache
   void refreshScreenings() {
     print('🔄 [CACHE] Manually refreshing screenings...');
     ref.invalidate(cachedScreeningsProvider);
+    state = state + 1;
   }
 
   /// Refresh all cached data
@@ -54,5 +55,6 @@ class CacheRefreshNotifier extends StateNotifier<void> {
     print('🔄 [CACHE] Manually refreshing ALL cached data...');
     ref.invalidate(cachedMoviesProvider);
     ref.invalidate(cachedScreeningsProvider);
+    state = state + 1;
   }
 }

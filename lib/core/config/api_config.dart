@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
 
 class ApiConfig {
   // Configura aquí tu IP local (encuentra con 'ipconfig' en Windows)
@@ -22,4 +21,5 @@ class ApiConfig {
   static String get usersUrl => '$baseUrl/api/FirebaseTest/get-all-users';
   static String get moviesUrl => '$baseUrl/api/movies';
   static String get meUrl => '$baseUrl/api/me';
+  static String get claimsUrl => '$baseUrl/api/ClaimTicket';
 }
