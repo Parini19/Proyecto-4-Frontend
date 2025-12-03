@@ -128,98 +128,198 @@ class _HomePageState extends ConsumerState<HomePage> {
     final popularMoviesAsync = ref.watch(popularFilteredByCinemaProvider);
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Main Content
-          CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              // Conditional: Show search results or regular content
-              if (_isSearching) ...[
-                // Search Results
-                SliverToBoxAdapter(
-                  child: _buildSearchResults(size, isDark),
-                ),
-              ] else ...[
-                // Hero Section (Netflix-style)
-                SliverToBoxAdapter(
-                  child: _buildHeroSectionWithProvider(size, isDark, popularMoviesAsync),
-                ),
+      body: size.width < 768
+          ? Column(
+              children: [
+                // Header fijo en mobile
+                _buildAppBar(isDark),
+                // Contenido scrollable
+                Expanded(
+                  child: Stack(
+                    children: [
+                      CustomScrollView(
+                        controller: _scrollController,
+                        slivers: [
+                          // Conditional: Show search results or regular content
+                          if (_isSearching) ...[
+                            // Search Results
+                            SliverToBoxAdapter(
+                              child: _buildSearchResults(size, isDark),
+                            ),
+                          ] else ...[
+                            // Hero Section (Netflix-style)
+                            SliverToBoxAdapter(
+                              child: _buildHeroSectionWithProvider(size, isDark, popularMoviesAsync),
+                            ),
 
-                // Cinema Selection Banner
-                SliverToBoxAdapter(
-                  child: _buildCinemaSelectionBanner(ref, isDark, size),
-                ),
+                            // Cinema Selection Banner
+                            SliverToBoxAdapter(
+                              child: _buildCinemaSelectionBanner(ref, isDark, size),
+                            ),
 
-                // En Cartelera Section
-                SliverToBoxAdapter(
-                  child: Container(
-                    key: _carteleraKey,
-                    child: nowPlayingMoviesAsync.when(
-                      data: (movies) => _buildSection(
-                        title: 'En Cartelera',
-                        movies: movies,
-                        isDark: isDark,
-                        size: size,
+                            // En Cartelera Section
+                            SliverToBoxAdapter(
+                              child: Container(
+                                key: _carteleraKey,
+                                child: nowPlayingMoviesAsync.when(
+                                  data: (movies) => _buildSection(
+                                    title: 'En Cartelera',
+                                    movies: movies,
+                                    isDark: isDark,
+                                    size: size,
+                                  ),
+                                  loading: () => _buildLoadingSection(isDark),
+                                  error: (error, stack) => _buildErrorSection('Error al cargar películas en cartelera', isDark),
+                                ),
+                              ),
+                            ),
+
+                            // Próximos Estrenos Section
+                            SliverToBoxAdapter(
+                              child: Container(
+                                key: _proximosKey,
+                                child: upcomingMoviesAsync.when(
+                                  data: (movies) => _buildSection(
+                                    title: 'Próximos Estrenos',
+                                    movies: movies,
+                                    isDark: isDark,
+                                    size: size,
+                                  ),
+                                  loading: () => _buildLoadingSection(isDark),
+                                  error: (error, stack) => _buildErrorSection('Error al cargar próximos estrenos', isDark),
+                                ),
+                              ),
+                            ),
+
+                            // Más Populares Section
+                            SliverToBoxAdapter(
+                              child: Container(
+                                key: _popularesKey,
+                                child: popularMoviesAsync.when(
+                                  data: (movies) => _buildSection(
+                                    title: 'Más Populares',
+                                    movies: movies,
+                                    isDark: isDark,
+                                    size: size,
+                                  ),
+                                  loading: () => _buildLoadingSection(isDark),
+                                  error: (error, stack) => _buildErrorSection('Error al cargar películas populares', isDark),
+                                ),
+                              ),
+                            ),
+                          ],
+
+                          // Footer
+                          SliverToBoxAdapter(
+                            child: _buildFooter(isDark),
+                          ),
+                        ],
                       ),
-                      loading: () => _buildLoadingSection(isDark),
-                      error: (error, stack) => _buildErrorSection('Error al cargar películas en cartelera', isDark),
-                    ),
-                  ),
-                ),
 
-                // Próximos Estrenos Section
-                SliverToBoxAdapter(
-                  child: Container(
-                    key: _proximosKey,
-                    child: upcomingMoviesAsync.when(
-                      data: (movies) => _buildSection(
-                        title: 'Próximos Estrenos',
-                        movies: movies,
-                        isDark: isDark,
-                        size: size,
-                      ),
-                      loading: () => _buildLoadingSection(isDark),
-                      error: (error, stack) => _buildErrorSection('Error al cargar próximos estrenos', isDark),
-                    ),
-                  ),
-                ),
+                      // Mobile Bottom Navigation (Thumb-zone friendly)
+                      _buildMobileBottomNav(isDark),
 
-                // Más Populares Section
-                SliverToBoxAdapter(
-                  child: Container(
-                    key: _popularesKey,
-                    child: popularMoviesAsync.when(
-                      data: (movies) => _buildSection(
-                        title: 'Más Populares',
-                        movies: movies,
-                        isDark: isDark,
-                        size: size,
-                      ),
-                      loading: () => _buildLoadingSection(isDark),
-                      error: (error, stack) => _buildErrorSection('Error al cargar películas populares', isDark),
-                    ),
+                      // Chat IA flotante
+                      const FloatingChatBubble(),
+                    ],
                   ),
                 ),
               ],
+            )
+          : Stack(
+              children: [
+                // Main Content (Desktop)
+                CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    // Padding para el header
+                    SliverPadding(
+                      padding: EdgeInsets.only(top: 70),
+                    ),
 
-              // Footer
-              SliverToBoxAdapter(
-                child: _buildFooter(isDark),
-              ),
-            ],
-          ),
+                    // Conditional: Show search results or regular content
+                    if (_isSearching) ...[
+                      // Search Results
+                      SliverToBoxAdapter(
+                        child: _buildSearchResults(size, isDark),
+                      ),
+                    ] else ...[
+                      // Hero Section (Netflix-style)
+                      SliverToBoxAdapter(
+                        child: _buildHeroSectionWithProvider(size, isDark, popularMoviesAsync),
+                      ),
 
-          // App Bar (Netflix-style - transparent when at top)
-          _buildAppBar(isDark),
+                      // Cinema Selection Banner
+                      SliverToBoxAdapter(
+                        child: _buildCinemaSelectionBanner(ref, isDark, size),
+                      ),
 
-          // Mobile Bottom Navigation (Thumb-zone friendly)
-          if (size.width < 768) _buildMobileBottomNav(isDark),
+                      // En Cartelera Section
+                      SliverToBoxAdapter(
+                        child: Container(
+                          key: _carteleraKey,
+                          child: nowPlayingMoviesAsync.when(
+                            data: (movies) => _buildSection(
+                              title: 'En Cartelera',
+                              movies: movies,
+                              isDark: isDark,
+                              size: size,
+                            ),
+                            loading: () => _buildLoadingSection(isDark),
+                            error: (error, stack) => _buildErrorSection('Error al cargar películas en cartelera', isDark),
+                          ),
+                        ),
+                      ),
 
-          // Chat IA flotante
-          const FloatingChatBubble(),
-        ],
-      ),
+                      // Próximos Estrenos Section
+                      SliverToBoxAdapter(
+                        child: Container(
+                          key: _proximosKey,
+                          child: upcomingMoviesAsync.when(
+                            data: (movies) => _buildSection(
+                              title: 'Próximos Estrenos',
+                              movies: movies,
+                              isDark: isDark,
+                              size: size,
+                            ),
+                            loading: () => _buildLoadingSection(isDark),
+                            error: (error, stack) => _buildErrorSection('Error al cargar próximos estrenos', isDark),
+                          ),
+                        ),
+                      ),
+
+                      // Más Populares Section
+                      SliverToBoxAdapter(
+                        child: Container(
+                          key: _popularesKey,
+                          child: popularMoviesAsync.when(
+                            data: (movies) => _buildSection(
+                              title: 'Más Populares',
+                              movies: movies,
+                              isDark: isDark,
+                              size: size,
+                            ),
+                            loading: () => _buildLoadingSection(isDark),
+                            error: (error, stack) => _buildErrorSection('Error al cargar películas populares', isDark),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // Footer
+                    SliverToBoxAdapter(
+                      child: _buildFooter(isDark),
+                    ),
+                  ],
+                ),
+
+                // App Bar (Netflix-style - transparent when at top)
+                _buildAppBar(isDark),
+
+                // Chat IA flotante
+                const FloatingChatBubble(),
+              ],
+            ),
     );
   }
 
@@ -282,18 +382,50 @@ class _HomePageState extends ConsumerState<HomePage> {
                   isActive: false,
                   isDark: isDark,
                   onTap: () {
-                    // TODO: Navigate to tickets page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MyTicketsPage()),
+                    );
                   },
                 ),
                 _buildBottomNavItem(
-                  icon: Icons.person_outline,
-                  label: 'Perfil',
+                  icon: Icons.restaurant_menu,
+                  label: 'Dulcería',
                   isActive: false,
                   isDark: isDark,
                   onTap: () {
-                    // Show user menu
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const FoodMenuPage()),
+                    );
                   },
                 ),
+                if (_userService.isAdmin())
+                  _buildBottomNavItem(
+                    icon: Icons.admin_panel_settings,
+                    label: 'Admin',
+                    isActive: false,
+                    isDark: isDark,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AdminDashboard()),
+                      );
+                    },
+                  )
+                else
+                  _buildBottomNavItem(
+                    icon: Icons.local_offer_outlined,
+                    label: 'Promociones',
+                    isActive: false,
+                    isDark: isDark,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PromotionsPage()),
+                      );
+                    },
+                  ),
               ] else ...[
                 _buildBottomNavItem(
                   icon: Icons.local_offer_outlined,
@@ -362,44 +494,38 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildAppBar(bool isDark) {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        height: 70,
-        decoration: BoxDecoration(
-          gradient: _isScrolled
-              ? null
-              : LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.7),
-                    Colors.transparent,
-                  ],
-                ),
-          color: _isScrolled
-              ? (isDark ? AppColors.darkSurface : AppColors.lightSurface)
-              : null,
-          boxShadow: _isScrolled
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-              : null,
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 768;
+
+    final appBarContent = Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            width: 1,
+          ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: _getHorizontalPadding(MediaQuery.of(context).size.width)),
-            child: Row(
-              children: [
-                // Logo
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Container(
+          height: isMobile ? 60 : 70,
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : _getHorizontalPadding(MediaQuery.of(context).size.width),
+            vertical: 0,
+          ),
+          child: Row(
+            children: [
+                // Logo - Visible and appropriately sized in mobile
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       width: 40,
@@ -408,18 +534,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                         gradient: AppColors.primaryGradient,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.movie, color: Colors.white, size: 24),
+                      child: Icon(Icons.movie, color: Colors.white, size: 22),
                     ),
-                    SizedBox(width: 12),
-                    Text(
-                      'Cinema',
-                      style: AppTypography.headlineSmall.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: _isScrolled
-                            ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
-                            : Colors.white,
+                    SizedBox(width: 8),
+                    if (!isMobile)
+                      Text(
+                        'Cinema',
+                        style: AppTypography.headlineSmall.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: (_isScrolled || isMobile)
+                              ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
+                              : Colors.white,
+                        ),
                       ),
-                    ),
                   ],
                 ),
 
@@ -451,58 +578,61 @@ class _HomePageState extends ConsumerState<HomePage> {
                   // Spacer to push right-side elements to the end
                   const Spacer(),
 
-                // Theme Toggle Button
-                _buildThemeToggle(isDark),
-
-                SizedBox(width: 8),
+                // Theme Toggle Button - Hide in mobile
+                if (!isMobile) ...[
+                  _buildThemeToggle(isDark, isMobile),
+                  SizedBox(width: 8),
+                ],
 
                 // Search Icon/Bar - Fixed width to prevent layout shift
                 if (_isSearching)
-                  Container(
-                    width: MediaQuery.of(context).size.width > 768 ? 400 : 250,
-                    height: 40,
-                    margin: EdgeInsets.symmetric(horizontal: 8),
-                    child: TextField(
-                      controller: _searchController,
-                      autofocus: true,
-                      onChanged: _searchMovies,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar películas...',
-                        hintStyle: TextStyle(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.5)
-                              : Colors.black.withOpacity(0.5),
+                  Expanded(
+                    child: Container(
+                      height: 40,
+                      margin: EdgeInsets.symmetric(horizontal: 8),
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: true,
+                        onChanged: _searchMovies,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
                         ),
-                        filled: true,
-                        fillColor: isDark
-                            ? AppColors.darkSurfaceVariant
-                            : AppColors.lightSurfaceVariant,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                        suffixIcon: IconButton(
-                          icon: Icon(Icons.close),
-                          onPressed: () {
-                            setState(() {
-                              _isSearching = false;
-                              _searchController.clear();
-                              _searchResults = [];
-                            });
-                          },
+                        decoration: InputDecoration(
+                          hintText: 'Buscar...',
+                          hintStyle: TextStyle(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.5)
+                                : Colors.black.withOpacity(0.5),
+                          ),
+                          filled: true,
+                          fillColor: isDark
+                              ? AppColors.darkSurfaceVariant
+                              : AppColors.lightSurfaceVariant,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.close, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                _isSearching = false;
+                                _searchController.clear();
+                                _searchResults = [];
+                              });
+                            },
+                          ),
                         ),
                       ),
                     ),
                   )
-                else
+                else ...[
                   IconButton(
                     icon: Icon(
                       Icons.search,
-                      color: _isScrolled
+                      size: 24,
+                      color: (_isScrolled || isMobile)
                           ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
                           : Colors.white,
                     ),
@@ -510,18 +640,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                       setState(() => _isSearching = true);
                     },
                   ),
+                ],
 
-                SizedBox(width: 8),
+                SizedBox(width: 4),
 
                 // User Profile or Login Button
-                _buildUserSection(isDark),
+                _buildUserSection(isDark, isMobile),
 
                 // Mobile Menu
                 if (MediaQuery.of(context).size.width <= 768)
                   IconButton(
                     icon: Icon(
                       Icons.menu,
-                      color: _isScrolled
+                      size: 24,
+                      color: (_isScrolled || isMobile)
                           ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
                           : Colors.white,
                     ),
@@ -529,12 +661,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                       _showMobileMenu(context, isDark);
                     },
                   ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
     );
+
+    // Return different layout based on screen size
+    return isMobile
+        ? appBarContent // In mobile, return as-is (used in Column)
+        : Positioned( // In desktop, return as Positioned (used in Stack)
+            top: 0,
+            left: 0,
+            right: 0,
+            child: appBarContent,
+          );
   }
 
   void _scrollToSection(GlobalKey key) {
@@ -609,7 +750,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildUserSection(bool isDark) {
+  Widget _buildUserSection(bool isDark, bool isMobile) {
     if (_authService.isAuthenticated) {
       final user = _authService.currentUser;
       return PopupMenuButton<String>(
@@ -709,9 +850,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           }
         },
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: isMobile
+              ? EdgeInsets.symmetric(horizontal: 8, vertical: 6)
+              : EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: _isScrolled
+            color: (_isScrolled || isMobile)
                 ? (isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant)
                 : Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(20),
@@ -724,23 +867,23 @@ class _HomePageState extends ConsumerState<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               CircleAvatar(
-                radius: 16,
+                radius: 14,
                 backgroundColor: AppColors.primary,
                 child: Text(
                   (user?.displayName?.substring(0, 1) ?? user?.email.substring(0, 1) ?? 'U').toUpperCase(),
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ),
-              SizedBox(width: 8),
+              SizedBox(width: 6),
               if (MediaQuery.of(context).size.width > 768) ...[
                 Text(
                   user?.displayName ?? user?.email ?? 'Usuario',
                   style: TextStyle(
-                    color: _isScrolled
+                    color: (_isScrolled || isMobile)
                         ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
                         : Colors.white,
                     fontWeight: FontWeight.w600,
@@ -752,7 +895,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               ],
               Icon(
                 Icons.arrow_drop_down,
-                color: _isScrolled
+                size: 20,
+                color: (_isScrolled || isMobile)
                     ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
                     : Colors.white,
               ),
@@ -771,19 +915,24 @@ class _HomePageState extends ConsumerState<HomePage> {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: isMobile
+              ? EdgeInsets.all(10)
+              : EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
+          minimumSize: Size(40, 40),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.person, size: 18),
-            SizedBox(width: 8),
-            Text('Iniciar Sesión'),
-          ],
-        ),
+        child: isMobile
+            ? Icon(Icons.person, size: 20)
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person, size: 18),
+                  SizedBox(width: 8),
+                  Text('Iniciar Sesión'),
+                ],
+              ),
       );
     }
   }
@@ -1427,11 +1576,12 @@ class _HomePageState extends ConsumerState<HomePage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (context) => SingleChildScrollView(
+        child: Container(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // User Section
             if (_authService.isAuthenticated) ...[
               Container(
@@ -1632,10 +1782,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
       ),
+        ),
     );
   }
 
-  Widget _buildThemeToggle(bool isDark) {
+  Widget _buildThemeToggle(bool isDark, bool isMobile) {
     final themeMode = ref.watch(themeProvider);
     final themeNotifier = ref.read(themeProvider.notifier);
 
@@ -1644,7 +1795,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       icon: Icon(
         themeNotifier.themeModeIcon,
-        color: _isScrolled
+        color: (_isScrolled || isMobile)
             ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
             : Colors.white,
       ),

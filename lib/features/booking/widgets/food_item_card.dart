@@ -139,7 +139,7 @@ class _FoodItemCardState extends State<FoodItemCard> with SingleTickerProviderSt
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Name
                     Text(
@@ -150,7 +150,6 @@ class _FoodItemCardState extends State<FoodItemCard> with SingleTickerProviderSt
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: 2),
                     // Description
                     Text(
                       widget.foodItem.description,
@@ -161,7 +160,6 @@ class _FoodItemCardState extends State<FoodItemCard> with SingleTickerProviderSt
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: 6),
                     // Price
                     Container(
                       padding: EdgeInsets.symmetric(
@@ -215,8 +213,8 @@ class _FoodItemCardState extends State<FoodItemCard> with SingleTickerProviderSt
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 32,
-                      height: 32,
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
@@ -226,15 +224,15 @@ class _FoodItemCardState extends State<FoodItemCard> with SingleTickerProviderSt
                         icon: Icon(Icons.add),
                         color: Colors.white,
                         onPressed: widget.onAdd,
-                        iconSize: 16,
+                        iconSize: 14,
                         padding: EdgeInsets.zero,
                         constraints: BoxConstraints(),
                       ),
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(height: 2),
                     Container(
-                      width: 32,
-                      height: 32,
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
                         color: AppColors.surfaceVariant,
                         shape: BoxShape.circle,
@@ -243,7 +241,7 @@ class _FoodItemCardState extends State<FoodItemCard> with SingleTickerProviderSt
                         icon: Icon(Icons.remove),
                         color: AppColors.primary,
                         onPressed: widget.onRemove,
-                        iconSize: 16,
+                        iconSize: 14,
                         padding: EdgeInsets.zero,
                         constraints: BoxConstraints(),
                       ),

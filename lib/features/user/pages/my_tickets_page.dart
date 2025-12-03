@@ -26,11 +26,19 @@ final userBookingsProvider = FutureProvider<List<Booking>>((ref) async {
   return await bookingService.getUserBookings(userId);
 });
 
-class MyTicketsPage extends ConsumerWidget {
+class MyTicketsPage extends ConsumerStatefulWidget {
   const MyTicketsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyTicketsPage> createState() => _MyTicketsPageState();
+}
+
+class _MyTicketsPageState extends ConsumerState<MyTicketsPage> {
+  String _selectedFilter = 'Todos';
+  String _sortOrder = 'recientes'; // 'recientes' or 'antiguos'
+
+  @override
+  Widget build(BuildContext context) {
     final bookingsAsync = ref.watch(userBookingsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -72,29 +80,64 @@ class MyTicketsPage extends ConsumerWidget {
             );
           }
 
-          // Separate active and past bookings
-          final now = DateTime.now();
-          final activeBookings = bookings
+          // Apply filters and sorting
+          List<Booking> filteredBookings = List.from(bookings);
+
+          // Filter by status
+          if (_selectedFilter == 'Activos') {
+            filteredBookings = filteredBookings
+                .where((b) => b.status == 'confirmed' || b.status == 'pending')
+                .toList();
+          } else if (_selectedFilter == 'Pasados') {
+            filteredBookings = filteredBookings
+                .where((b) => b.status == 'cancelled' || b.status == 'completed')
+                .toList();
+          }
+
+          // Sort by date
+          if (_sortOrder == 'recientes') {
+            filteredBookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          } else {
+            filteredBookings.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          }
+
+          // Separate active and past bookings for section headers
+          final activeBookings = filteredBookings
               .where((b) => b.status == 'confirmed' || b.status == 'pending')
               .toList();
-          final pastBookings = bookings
+          final pastBookings = filteredBookings
               .where((b) => b.status == 'cancelled' || b.status == 'completed')
               .toList();
 
-          return ListView(
-            padding: AppSpacing.pagePadding,
+          return Column(
             children: [
-              if (activeBookings.isNotEmpty) ...[
-                _buildSectionHeader('Próximos', isDark),
-                SizedBox(height: 16),
-                ...activeBookings.map((booking) => _buildTicketCard(booking, isDark, context)),
-                SizedBox(height: 32),
-              ],
-              if (pastBookings.isNotEmpty) ...[
-                _buildSectionHeader('Pasados', isDark),
-                SizedBox(height: 16),
-                ...pastBookings.map((booking) => _buildTicketCard(booking, isDark, context)),
-              ],
+              // Filter chips
+              _buildFilterChips(isDark),
+
+              // Bookings list
+              Expanded(
+                child: ListView(
+                  padding: AppSpacing.pagePadding,
+                  children: [
+                    if (_selectedFilter == 'Todos') ...[
+                      if (activeBookings.isNotEmpty) ...[
+                        _buildSectionHeader('Próximos', isDark),
+                        SizedBox(height: 16),
+                        ...activeBookings.map((booking) => _buildTicketCard(booking, isDark, context)),
+                        SizedBox(height: 32),
+                      ],
+                      if (pastBookings.isNotEmpty) ...[
+                        _buildSectionHeader('Pasados', isDark),
+                        SizedBox(height: 16),
+                        ...pastBookings.map((booking) => _buildTicketCard(booking, isDark, context)),
+                      ],
+                    ] else ...[
+                      // Show filtered results without section headers
+                      ...filteredBookings.map((booking) => _buildTicketCard(booking, isDark, context)),
+                    ],
+                  ],
+                ),
+              ),
             ],
           );
         },
@@ -118,6 +161,134 @@ class MyTicketsPage extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips(bool isDark) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Status filters
+          Row(
+            children: [
+              Text(
+                'Filtrar:',
+                style: AppTypography.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Todos', isDark),
+                      SizedBox(width: 8),
+                      _buildFilterChip('Activos', isDark),
+                      SizedBox(width: 8),
+                      _buildFilterChip('Pasados', isDark),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          // Sort order
+          Row(
+            children: [
+              Text(
+                'Ordenar:',
+                style: AppTypography.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildSortChip('recientes', 'Más recientes', isDark),
+                      SizedBox(width: 8),
+                      _buildSortChip('antiguos', 'Más antiguos', isDark),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool isDark) {
+    final isSelected = _selectedFilter == label;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedFilter = label),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary
+              : (isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(
+            color: isSelected
+                ? Colors.white
+                : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortChip(String value, String label, bool isDark) {
+    final isSelected = _sortOrder == value;
+    return GestureDetector(
+      onTap: () => setState(() => _sortOrder = value),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary
+              : (isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(
+            color: isSelected
+                ? Colors.white
+                : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
       ),
@@ -374,23 +545,34 @@ class MyTicketsPage extends ConsumerWidget {
       padding: EdgeInsets.only(bottom: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: isTotal
-                ? AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold)
-                : AppTypography.bodyLarge,
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: isTotal
+                  ? AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold)
+                  : AppTypography.bodyLarge,
+            ),
           ),
-          Text(
-            value,
-            style: isTotal
-                ? AppTypography.titleLarge.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  )
-                : AppTypography.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+          SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: isTotal
+                  ? AppTypography.titleLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    )
+                  : AppTypography.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.visible,
+              softWrap: true,
+            ),
           ),
         ],
       ),

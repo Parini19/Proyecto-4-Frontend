@@ -164,7 +164,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
         // Chat expandido
         if (_isExpanded)
           Positioned(
-            bottom: isMobile ? 90 : 150,
+            bottom: isMobile ? 160 : 150,
             right: 20,
             child: ScaleTransition(
               scale: _scaleAnimation,
@@ -303,7 +303,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
           ),
         // Burbuja flotante
         Positioned(
-          bottom: isMobile ? 20 : 80,
+          bottom: isMobile ? 90 : 80,
           right: 20,
           child: GestureDetector(
             onTap: _toggleChat,
