@@ -403,7 +403,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildMobileAppBar(bool isDark) {
     return Container(
-      height: 64, // Slightly taller for better touch target
       decoration: BoxDecoration(
         gradient: isDark ? AppColors.cinemaGradient : null,
         color: isDark ? null : AppColors.lightSurfaceElevated,
@@ -415,69 +414,75 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
       ),
       child: SafeArea(
-        child: Row(
-          children: [
-            IconButton(
-            icon: Icon(
-              Icons.menu,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            ),
-            onPressed: () {
-              _scaffoldKey.currentState?.openDrawer();
-            },
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Container(
-            width: 35,
-            height: 35,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              shape: BoxShape.circle,
-              boxShadow: isDark ? AppColors.glowShadow : null,
-            ),
-            child: Icon(
-              Icons.admin_panel_settings,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Admin Panel',
-                  style: AppTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.menu,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 ),
-                Text(
-                  _getPageTitle(_selectedIndex),
-                  style: AppTypography.bodySmall.copyWith(
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                  ),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+              ),
+              SizedBox(width: AppSpacing.xs),
+              Container(
+                width: 35,
+                height: 35,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: isDark ? AppColors.glowShadow : null,
                 ),
-              ],
-            ),
+                child: Icon(
+                  Icons.admin_panel_settings,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Admin Panel',
+                      style: AppTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      _getPageTitle(_selectedIndex),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.notifications_outlined,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                ),
+                onPressed: () {},
+              ),
+              Padding(
+                padding: EdgeInsets.only(right: AppSpacing.sm),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppColors.primary,
+                  child: Icon(Icons.person, color: Colors.white, size: 18),
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            icon: Icon(
-              Icons.notifications_outlined,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            ),
-            onPressed: () {},
-          ),
-          Padding(
-            padding: EdgeInsets.only(right: AppSpacing.sm),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.primary,
-              child: Icon(Icons.person, color: Colors.white, size: 18),
-            ),
-          ),
-        ],
         ),
       ),
     );
