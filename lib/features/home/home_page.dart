@@ -428,21 +428,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
               ] else ...[
                 _buildBottomNavItem(
-                  icon: Icons.local_offer_outlined,
-                  label: 'Ofertas',
-                  isActive: false,
-                  isDark: isDark,
-                  onTap: () {
-                    // TODO: Navigate to promotions
-                  },
-                ),
-                _buildBottomNavItem(
                   icon: Icons.login,
                   label: 'Entrar',
                   isActive: false,
                   isDark: isDark,
                   onTap: () {
-                    Navigator.pushNamed(context, '/login');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginPage()),
+                    );
                   },
                 ),
               ],
