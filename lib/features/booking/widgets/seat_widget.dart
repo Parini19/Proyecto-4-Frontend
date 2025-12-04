@@ -7,19 +7,22 @@ class SeatWidget extends StatefulWidget {
   final Seat seat;
   final VoidCallback onTap;
   final bool isSelected;
+  final double size;
 
   const SeatWidget({
     super.key,
     required this.seat,
     required this.onTap,
     this.isSelected = false,
+    this.size = 40.0,
   });
 
   @override
   State<SeatWidget> createState() => _SeatWidgetState();
 }
 
-class _SeatWidgetState extends State<SeatWidget> with SingleTickerProviderStateMixin {
+class _SeatWidgetState extends State<SeatWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   bool _isPressed = false;
@@ -31,9 +34,10 @@ class _SeatWidgetState extends State<SeatWidget> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.9,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -104,33 +108,23 @@ class _SeatWidgetState extends State<SeatWidget> with SingleTickerProviderStateM
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
+          return Transform.scale(scale: _scaleAnimation.value, child: child);
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: 40,
-          height: 40,
-          margin: EdgeInsets.symmetric(horizontal: 3),
+          width: widget.size,
+          height: widget.size,
+          margin: EdgeInsets.symmetric(horizontal: widget.size * 0.075),
           decoration: BoxDecoration(
             color: seatColor,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(widget.size * 0.2),
             border: widget.isSelected
-                ? Border.all(
-                    color: Colors.white.withOpacity(0.5),
-                    width: 2,
-                  )
+                ? Border.all(color: Colors.white.withOpacity(0.5), width: 2)
                 : null,
             boxShadow: shadows,
           ),
           child: icon != null
-              ? Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 22,
-                )
+              ? Icon(icon, color: Colors.white, size: widget.size * 0.55)
               : null,
         ),
       ),

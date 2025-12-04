@@ -39,7 +39,9 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
 
       try {
         // Get showtimes and select the one matching the time
-        final showtimes = await ref.read(showtimesProvider(widget.movie.id).future);
+        final showtimes = await ref.read(
+          showtimesProvider(widget.movie.id).future,
+        );
 
         if (showtimes.isEmpty) {
           // No showtimes available
@@ -75,9 +77,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
     final bookingState = ref.watch(bookingProvider);
 
     if (_selectedShowtime == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -85,10 +85,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.movie.title,
-              style: AppTypography.titleMedium,
-            ),
+            Text(widget.movie.title, style: AppTypography.titleMedium),
             Text(
               '${_selectedShowtime!.cinemaHall} • ${_selectedShowtime!.timeFormatted}',
               style: AppTypography.bodySmall.copyWith(
@@ -143,30 +140,30 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
 
     final rows = seatsByRow.keys.toList()..sort();
 
-    return Column(
-      children: rows.map((rowNumber) {
-        final rowSeats = seatsByRow[rowNumber]!;
-        rowSeats.sort((a, b) => a.number.compareTo(b.number));
+    // Detect if mobile
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
-        return Padding(
-          padding: EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Row label
-              SizedBox(
-                width: 30,
-                child: Text(
-                  String.fromCharCode(65 + rowNumber),
-                  style: AppTypography.labelMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+    // Calculate optimal seat size
+    final maxSeatsInRow = seatsByRow.values
+        .map((row) => row.length)
+        .reduce((a, b) => a > b ? a : b);
+    final availableWidth =
+        screenWidth - 30 - (AppSpacing.pagePadding.horizontal);
+    final calculatedSize = isMobile
+        ? (availableWidth / (maxSeatsInRow + 2)).clamp(28.0, 40.0)
+        : 40.0;
 
-              // Seats
-              ...rowSeats.map((seat) {
+    // Build seat rows
+    Widget buildSeatRow(int rowNumber, List<Seat> rowSeats) {
+      return Row(
+        mainAxisAlignment: isMobile
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.center,
+        children: [
+          // Seats
+          ...rowSeats
+              .map((seat) {
                 // Add spacing in the middle for aisle
                 final widgets = <Widget>[];
 
@@ -177,6 +174,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                 widgets.add(
                   SeatWidget(
                     seat: seat,
+                    size: calculatedSize,
                     onTap: () {
                       if (seat.status == SeatStatus.available ||
                           seat.status == SeatStatus.selected) {
@@ -190,14 +188,76 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                 );
 
                 return widgets;
-              }).expand((w) => w),
+              })
+              .expand((w) => w),
 
-              SizedBox(width: AppSpacing.sm),
-            ],
-          ),
-        );
-      }).toList(),
-    );
+          if (!isMobile) SizedBox(width: AppSpacing.sm),
+        ],
+      );
+    }
+
+    if (isMobile) {
+      // Mobile: Single horizontal scroll for entire grid
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: rows.map((rowNumber) {
+            final rowSeats = seatsByRow[rowNumber]!;
+            rowSeats.sort((a, b) => a.number.compareTo(b.number));
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Row(
+                children: [
+                  // Row label (fixed)
+                  SizedBox(
+                    width: 30,
+                    child: Text(
+                      String.fromCharCode(65 + rowNumber),
+                      style: AppTypography.labelMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  buildSeatRow(rowNumber, rowSeats),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      );
+    } else {
+      // Web: Centered rows without horizontal scroll
+      return Column(
+        children: rows.map((rowNumber) {
+          final rowSeats = seatsByRow[rowNumber]!;
+          rowSeats.sort((a, b) => a.number.compareTo(b.number));
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Row label
+                SizedBox(
+                  width: 30,
+                  child: Text(
+                    String.fromCharCode(65 + rowNumber),
+                    style: AppTypography.labelMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                buildSeatRow(rowNumber, rowSeats),
+              ],
+            ),
+          );
+        }).toList(),
+      );
+    }
   }
 
   Widget _buildBottomBar(BuildContext context, BookingState state) {
@@ -230,7 +290,9 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                       Text(
                         '${state.seatCount} asiento${state.seatCount > 1 ? 's' : ''}',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
                         ),
                       ),
                       Text(
@@ -290,82 +352,80 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
           ),
         ),
         padding: AppSpacing.pagePadding,
-        child: SingleChildScrollView(child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                margin: EdgeInsets.only(bottom: AppSpacing.md),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
-                  borderRadius: AppSpacing.borderRadiusRound,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  margin: EdgeInsets.only(bottom: AppSpacing.md),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.darkSurfaceVariant
+                        : AppColors.lightSurfaceVariant,
+                    borderRadius: AppSpacing.borderRadiusRound,
+                  ),
                 ),
               ),
-            ),
-            Text(
-              'Leyenda de Asientos',
-              style: AppTypography.headlineSmall,
-            ),
-            SizedBox(height: AppSpacing.md),
+              Text('Leyenda de Asientos', style: AppTypography.headlineSmall),
+              SizedBox(height: AppSpacing.md),
 
-            // Estados de Asientos
-            Text(
-              'Estados',
-              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: AppSpacing.sm),
-            _buildLegendItem(
-              color: AppColors.primary,
-              label: 'Seleccionado',
-            ),
-            _buildLegendItem(
-              color: AppColors.success,
-              label: 'Disponible',
-            ),
-            _buildLegendItem(
-              color: isDark ? AppColors.darkTextSecondary.withOpacity(0.4) : AppColors.lightTextSecondary.withOpacity(0.5),
-              label: 'Ocupado',
-              icon: Icons.close,
-            ),
-            _buildLegendItem(
-              color: Colors.grey.shade600,
-              label: 'No Disponible',
-              icon: Icons.block,
-            ),
+              // Estados de Asientos
+              Text(
+                'Estados',
+                style: AppTypography.bodyLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: AppSpacing.sm),
+              _buildLegendItem(color: AppColors.primary, label: 'Seleccionado'),
+              _buildLegendItem(color: AppColors.success, label: 'Disponible'),
+              _buildLegendItem(
+                color: isDark
+                    ? AppColors.darkTextSecondary.withOpacity(0.4)
+                    : AppColors.lightTextSecondary.withOpacity(0.5),
+                label: 'Ocupado',
+                icon: Icons.close,
+              ),
+              _buildLegendItem(
+                color: Colors.grey.shade600,
+                label: 'No Disponible',
+                icon: Icons.block,
+              ),
 
-            SizedBox(height: AppSpacing.md),
+              SizedBox(height: AppSpacing.md),
 
-            // Tipos de Asientos
-            Text(
-              'Tipos de Asientos',
-              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: AppSpacing.sm),
-            _buildLegendItem(
-              color: AppColors.success,
-              label: 'Regular - ₡4,500',
-            ),
-            _buildLegendItem(
-              color: AppColors.vip,
-              label: 'VIP - ₡6,500',
-            ),
-            _buildLegendItem(
-              color: AppColors.info,
-              label: 'Accesible - ₡4,500',
-              icon: Icons.accessible,
-            ),
-            _buildLegendItem(
-              color: Colors.grey.shade300,
-              label: 'Pasillo',
-              icon: Icons.more_horiz,
-              hasBorder: true,
-            ),
-            SizedBox(height: AppSpacing.lg),
-          ],
-        )),
+              // Tipos de Asientos
+              Text(
+                'Tipos de Asientos',
+                style: AppTypography.bodyLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: AppSpacing.sm),
+              _buildLegendItem(
+                color: AppColors.success,
+                label: 'Regular - ₡4,500',
+              ),
+              _buildLegendItem(color: AppColors.vip, label: 'VIP - ₡6,500'),
+              _buildLegendItem(
+                color: AppColors.info,
+                label: 'Accesible - ₡4,500',
+                icon: Icons.accessible,
+              ),
+              _buildLegendItem(
+                color: Colors.grey.shade300,
+                label: 'Pasillo',
+                icon: Icons.more_horiz,
+                hasBorder: true,
+              ),
+              SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -386,10 +446,16 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             decoration: BoxDecoration(
               color: color,
               borderRadius: AppSpacing.borderRadiusXS,
-              border: hasBorder ? Border.all(color: Colors.grey.shade400, width: 2) : null,
+              border: hasBorder
+                  ? Border.all(color: Colors.grey.shade400, width: 2)
+                  : null,
             ),
             child: icon != null
-                ? Icon(icon, color: hasBorder ? Colors.grey.shade600 : Colors.white, size: 20)
+                ? Icon(
+                    icon,
+                    color: hasBorder ? Colors.grey.shade600 : Colors.white,
+                    size: 20,
+                  )
                 : null,
           ),
           SizedBox(width: AppSpacing.md),
