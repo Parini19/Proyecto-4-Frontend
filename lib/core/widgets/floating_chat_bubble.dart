@@ -156,12 +156,15 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Stack(
       children: [
         // Chat expandido
         if (_isExpanded)
           Positioned(
-            bottom: 90,
+            bottom: isMobile ? 160 : 150,
             right: 20,
             child: ScaleTransition(
               scale: _scaleAnimation,
@@ -300,7 +303,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble>
           ),
         // Burbuja flotante
         Positioned(
-          bottom: 20,
+          bottom: isMobile ? 90 : 80,
           right: 20,
           child: GestureDetector(
             onTap: _toggleChat,

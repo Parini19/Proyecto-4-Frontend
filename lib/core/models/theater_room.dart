@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 /// Theater room model that matches the backend TheaterRoom entity
 class TheaterRoom {
   final String id;
+  final String cinemaId; // ID del cine al que pertenece
   final String name;
   final int capacity;
   final String? description;
+  final String? seatConfigurationJson; // JSON con layout de asientos
   final String type;
   final bool isActive;
   final List<String> features;
@@ -15,9 +17,11 @@ class TheaterRoom {
 
   const TheaterRoom({
     required this.id,
+    required this.cinemaId,
     required this.name,
     required this.capacity,
     this.description,
+    this.seatConfigurationJson,
     this.type = 'standard',
     this.isActive = true,
     this.features = const [],
@@ -29,14 +33,16 @@ class TheaterRoom {
   factory TheaterRoom.fromJson(Map<String, dynamic> json) {
     return TheaterRoom(
       id: json['id']?.toString() ?? '',
+      cinemaId: json['cinemaId']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       capacity: json['capacity'] as int? ?? 0,
       description: json['description']?.toString(),
+      seatConfigurationJson: json['seatConfigurationJson']?.toString(),
       type: json['type']?.toString() ?? 'standard',
       isActive: json['isActive'] as bool? ?? true,
       features: json['features'] != null ? List<String>.from(json['features']) : [],
-      seatConfiguration: json['seatConfiguration'] != null 
-          ? Map<String, int>.from(json['seatConfiguration']) 
+      seatConfiguration: json['seatConfiguration'] != null
+          ? Map<String, int>.from(json['seatConfiguration'])
           : {},
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'])?.toUtc() : null,
       updatedAt: json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt'])?.toUtc() : null,
@@ -46,9 +52,11 @@ class TheaterRoom {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'cinemaId': cinemaId,
       'name': name,
       'capacity': capacity,
       'description': description,
+      'seatConfigurationJson': seatConfigurationJson,
       'type': type,
       'isActive': isActive,
       'features': features,
@@ -60,9 +68,11 @@ class TheaterRoom {
 
   TheaterRoom copyWith({
     String? id,
+    String? cinemaId,
     String? name,
     int? capacity,
     String? description,
+    String? seatConfigurationJson,
     String? type,
     bool? isActive,
     List<String>? features,
@@ -72,9 +82,11 @@ class TheaterRoom {
   }) {
     return TheaterRoom(
       id: id ?? this.id,
+      cinemaId: cinemaId ?? this.cinemaId,
       name: name ?? this.name,
       capacity: capacity ?? this.capacity,
       description: description ?? this.description,
+      seatConfigurationJson: seatConfigurationJson ?? this.seatConfigurationJson,
       type: type ?? this.type,
       isActive: isActive ?? this.isActive,
       features: features ?? this.features,
@@ -133,6 +145,7 @@ class TheaterRoom {
 final List<TheaterRoom> mockTheaterRooms = [
   TheaterRoom(
     id: 'TR1',
+    cinemaId: 'CINEMA1', // Cine Premium San José
     name: 'Sala 1 - Premium',
     capacity: 120,
     description: 'Sala premium con asientos reclinables y sonido Dolby Atmos',
@@ -143,6 +156,7 @@ final List<TheaterRoom> mockTheaterRooms = [
   ),
   TheaterRoom(
     id: 'TR2',
+    cinemaId: 'CINEMA1', // Cine Premium San José
     name: 'Sala 2 - Estándar',
     capacity: 180,
     description: 'Sala estándar con excelente calidad de audio y video',
@@ -153,6 +167,7 @@ final List<TheaterRoom> mockTheaterRooms = [
   ),
   TheaterRoom(
     id: 'TR3',
+    cinemaId: 'CINEMA2', // Cine Mall Escazú
     name: 'Sala 3 - VIP',
     capacity: 80,
     description: 'Experiencia VIP con servicio de mesero y asientos de lujo',
@@ -163,6 +178,7 @@ final List<TheaterRoom> mockTheaterRooms = [
   ),
   TheaterRoom(
     id: 'TR4',
+    cinemaId: 'CINEMA2', // Cine Mall Escazú
     name: 'Sala 4 - IMAX',
     capacity: 200,
     description: 'Pantalla IMAX gigante para una experiencia inmersiva',
@@ -173,6 +189,7 @@ final List<TheaterRoom> mockTheaterRooms = [
   ),
   TheaterRoom(
     id: 'TR5',
+    cinemaId: 'CINEMA1', // Cine Premium San José
     name: 'Sala 5 - 4DX',
     capacity: 100,
     description: 'Asientos móviles y efectos ambientales sincronizados',

@@ -5,6 +5,7 @@ class Showtime {
   final String id;
   final String movieId;
   final String cinemaHall;
+  final String? cinemaName; // Added: Name of the cinema location
   final DateTime dateTime;
   final List<Seat> seats;
   final int totalSeats;
@@ -14,6 +15,7 @@ class Showtime {
     required this.id,
     required this.movieId,
     required this.cinemaHall,
+    this.cinemaName,
     required this.dateTime,
     required this.seats,
     required this.totalSeats,
@@ -49,6 +51,7 @@ class Showtime {
       id: json['id'] as String,
       movieId: json['movieId'] as String,
       cinemaHall: json['cinemaHall'] as String,
+      cinemaName: json['cinemaName'] as String?,
       dateTime: DateTime.parse(json['dateTime'] as String).toUtc(),
       seats: (json['seats'] as List<dynamic>)
           .map((e) => Seat.fromJson(e as Map<String, dynamic>))
@@ -63,6 +66,7 @@ class Showtime {
       'id': id,
       'movieId': movieId,
       'cinemaHall': cinemaHall,
+      'cinemaName': cinemaName,
       'dateTime': dateTime.toUtc().toIso8601String(),
       'seats': seats.map((e) => e.toJson()).toList(),
       'totalSeats': totalSeats,
@@ -74,6 +78,7 @@ class Showtime {
     String? id,
     String? movieId,
     String? cinemaHall,
+    String? cinemaName,
     DateTime? dateTime,
     List<Seat>? seats,
     int? totalSeats,
@@ -83,6 +88,7 @@ class Showtime {
       id: id ?? this.id,
       movieId: movieId ?? this.movieId,
       cinemaHall: cinemaHall ?? this.cinemaHall,
+      cinemaName: cinemaName ?? this.cinemaName,
       dateTime: dateTime ?? this.dateTime,
       seats: seats ?? this.seats,
       totalSeats: totalSeats ?? this.totalSeats,

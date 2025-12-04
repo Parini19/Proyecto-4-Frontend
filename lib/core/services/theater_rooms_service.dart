@@ -29,14 +29,28 @@ class TheaterRoomsService {
 
   Future<TheaterRoomModel?> getTheaterRoomById(String id) async {
     try {
+      print('🔍 DEBUG: Fetching theater room with ID: $id');
       final response = await _apiService.get('/theaterrooms/get-theater-room/$id');
 
+      print('🔍 DEBUG: Response success: ${response.success}');
+      print('🔍 DEBUG: Response data: ${response.data}');
+
       if (!response.success || response.data == null) {
+        print('⚠️ Theater room not found or response failed for ID: $id');
         return null;
       }
 
       // El backend devuelve { success: true, room: {...} }
-      return TheaterRoomModel.fromJson(response.data['room']);
+      final roomData = response.data['room'];
+      print('🔍 DEBUG: Room data: $roomData');
+      print('🔍 DEBUG: SeatConfiguration in response: ${roomData['seatConfiguration']}');
+
+      final room = TheaterRoomModel.fromJson(roomData);
+      print('✅ Theater room loaded: ${room.id} - ${room.name}');
+      print('🔍 DEBUG: SeatConfiguration type after parsing: ${room.seatConfiguration?.runtimeType}');
+      print('🔍 DEBUG: SeatConfiguration value: ${room.seatConfiguration}');
+
+      return room;
     } catch (e) {
       print('❌ Error en getTheaterRoomById: $e');
       return null;

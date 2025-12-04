@@ -70,18 +70,11 @@ class FoodComboService {
   /// Update an existing food combo
   Future<bool> updateFoodCombo(FoodCombo combo) async {
     try {
-      final response = await _apiService.put('/foodcombos/edit-food-combo/${combo.id}', body: {
-        'name': combo.name,
-        'description': combo.description,
-        'price': combo.price,
-        'items': combo.items,
-        'imageUrl': combo.imageUrl,
-        'category': combo.category,
-        'isAvailable': combo.isAvailable,
-      });
+      final response = await _apiService.put('/foodcombos/edit-food-combo/${combo.id}', body: combo.toJson());
 
       return response.success;
     } catch (e) {
+      print('Error updating food combo: $e');
       return false;
     }
   }

@@ -4,6 +4,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
 import '../../../core/widgets/cinema_text_field.dart';
+import '../../../core/widgets/image_picker_field.dart';
 import '../../../core/models/movie_model.dart';
 import '../../../core/services/movies_service.dart';
 
@@ -287,15 +288,15 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
             Icon(
               Icons.movie,
               size: 64,
-              color: AppColors.textSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
             const SizedBox(height: 16),
             Text(
-              _searchQuery.isEmpty 
+              _searchQuery.isEmpty
                   ? 'No hay películas en el servidor\n\nAsegúrate de que el backend esté ejecutándose\ny tenga películas en la base de datos.'
                   : 'No se encontraron películas\nque coincidan con "$_searchQuery"',
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -311,23 +312,27 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
       );
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final crossAxisCount = isMobile ? 2 : 4;
+
     return GridView.builder(
-      padding: AppSpacing.pagePadding,
+      padding: isMobile ? AppSpacing.paddingSM : AppSpacing.pagePadding,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 0.55, // Adjusted for standard movie poster ratio (2:3.6)
-        crossAxisSpacing: AppSpacing.md,
-        mainAxisSpacing: AppSpacing.md,
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: isMobile ? 0.6 : 0.55,
+        crossAxisSpacing: isMobile ? AppSpacing.sm : AppSpacing.md,
+        mainAxisSpacing: isMobile ? AppSpacing.sm : AppSpacing.md,
       ),
       itemCount: _filteredMovies.length,
       itemBuilder: (context, index) {
         final movie = _filteredMovies[index];
-        return _buildMovieCard(movie, isDark);
+        return _buildMovieCard(movie, isDark, isMobile);
       },
     );
   }
 
-  Widget _buildMovieCard(MovieModel movie, bool isDark) {
+  Widget _buildMovieCard(MovieModel movie, bool isDark, bool isMobile) {
     return Container(
       decoration: BoxDecoration(
         color: isDark
@@ -341,6 +346,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
         children: [
           // Movie Poster
           Expanded(
+            flex: isMobile ? 3 : 4,
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.vertical(
@@ -355,6 +361,24 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                     ? Image.network(
                         movie.posterUrl!,
                         fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.primary.withOpacity(0.3),
+                                  AppColors.secondary.withOpacity(0.2),
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        },
                         errorBuilder: (context, error, stackTrace) => Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -369,7 +393,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                           child: Center(
                             child: Icon(
                               Icons.movie,
-                              size: 64,
+                              size: isMobile ? 40 : 64,
                               color: AppColors.primary.withOpacity(0.5),
                             ),
                           ),
@@ -389,7 +413,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                         child: Center(
                           child: Icon(
                             Icons.movie,
-                            size: 64,
+                            size: isMobile ? 40 : 64,
                             color: AppColors.primary.withOpacity(0.5),
                           ),
                         ),
@@ -400,67 +424,87 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
 
           // Movie Info
           Padding(
-            padding: AppSpacing.paddingMD,
+            padding: isMobile
+                ? EdgeInsets.all(AppSpacing.sm)
+                : AppSpacing.paddingMD,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   movie.title,
-                  style: AppTypography.titleMedium.copyWith(
+                  style: (isMobile ? AppTypography.titleSmall : AppTypography.titleMedium).copyWith(
                     fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 1,
+                  maxLines: isMobile ? 2 : 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: AppSpacing.xs),
                 Text(
                   movie.genre,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    fontSize: isMobile ? 10 : 12,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 14, color: AppColors.textTertiary),
-                    SizedBox(width: 4),
-                    Text(
-                      movie.duration,
-                      style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.textTertiary,
+                if (!isMobile) SizedBox(height: AppSpacing.xs),
+                if (!isMobile)
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 14, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          movie.duration,
+                          style: AppTypography.labelSmall.copyWith(
+                            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    Spacer(),
-                    Icon(Icons.star, size: 14, color: Colors.amber),
-                    SizedBox(width: 4),
-                    Text(
-                      movie.rating,
-                      style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.textTertiary,
+                      SizedBox(width: 8),
+                      Icon(Icons.star, size: 14, color: Colors.amber),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          movie.rating,
+                          style: AppTypography.labelSmall.copyWith(
+                            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.sm),
+                    ],
+                  ),
+                SizedBox(height: isMobile ? AppSpacing.xs : AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _showAddEditDialog(context, isDark, movie: movie),
                         style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                          padding: EdgeInsets.symmetric(
+                            vertical: isMobile ? 4 : AppSpacing.xs,
+                            horizontal: isMobile ? 4 : 8,
+                          ),
                         ),
-                        child: Text('Editar'),
+                        child: Text(
+                          'Editar',
+                          style: TextStyle(fontSize: isMobile ? 10 : 12),
+                        ),
                       ),
                     ),
                     SizedBox(width: AppSpacing.xs),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: AppColors.error),
-                      onPressed: () => _showDeleteDialog(context, movie),
-                      padding: EdgeInsets.zero,
-                      constraints: BoxConstraints(),
+                    SizedBox(
+                      width: isMobile ? 32 : 40,
+                      child: IconButton(
+                        icon: Icon(Icons.delete, color: AppColors.error, size: isMobile ? 16 : 20),
+                        onPressed: () => _showDeleteDialog(context, movie),
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(),
+                      ),
                     ),
                   ],
                 ),
@@ -481,9 +525,11 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
     final descriptionController = TextEditingController(text: movie?.description ?? '');
     final directorController = TextEditingController(text: movie?.director ?? '');
     final yearController = TextEditingController(text: movie?.year ?? '');
-    final posterUrlController = TextEditingController(text: movie?.posterUrl ?? '');
     final ratingController = TextEditingController(text: movie?.rating ?? '');
     final classificationController = TextEditingController(text: movie?.classification ?? '');
+
+    // Variable to store selected image in base64
+    String? selectedPosterBase64;
 
     showDialog(
       context: context,
@@ -537,11 +583,12 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                   prefixIcon: Icons.person,
                 ),
                 SizedBox(height: AppSpacing.md),
-                CinemaTextField(
-                  label: 'URL del Poster',
-                  controller: posterUrlController,
-                  hint: 'https://ejemplo.com/poster.jpg',
-                  prefixIcon: Icons.image,
+                ImagePickerField(
+                  initialImageUrl: movie?.posterUrl,
+                  onImageSelected: (base64Image) {
+                    selectedPosterBase64 = base64Image;
+                  },
+                  label: 'Poster de la Película',
                 ),
                 SizedBox(height: AppSpacing.md),
                 CinemaTextField(
@@ -625,16 +672,16 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                   year: yearController.text.trim(),
                   showtimes: null,
                   trailer: null,
-                  posterUrl: posterUrlController.text.trim(),
+                  posterUrl: movie?.posterUrl ?? '', // Keep existing URL if updating and no new image
                 );
 
                 bool success;
                 if (movie == null) {
-                  // Create new movie
-                  success = await _moviesService.createMovie(newMovie);
+                  // Create new movie with optional image upload
+                  success = await _moviesService.createMovie(newMovie, posterBase64: selectedPosterBase64);
                 } else {
-                  // Update existing movie
-                  success = await _moviesService.updateMovie(newMovie);
+                  // Update existing movie with optional new image
+                  success = await _moviesService.updateMovie(newMovie, posterBase64: selectedPosterBase64);
                 }
 
                 // Clear loading snackbar
@@ -649,9 +696,38 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
                             : 'Película actualizada exitosamente',
                       ),
                       backgroundColor: AppColors.success,
+                      duration: Duration(seconds: 2),
                     ),
                   );
-                  _loadMovies(); // Refresh the list
+
+                  // Optimistic update: Update local state immediately
+                  setState(() {
+                    if (movie == null) {
+                      // Add new movie
+                      _movies.add(newMovie);
+                    } else {
+                      // Update existing movie
+                      final index = _movies.indexWhere((m) => m.id == movie.id);
+                      if (index != -1) {
+                        _movies[index] = newMovie;
+                      }
+                    }
+                    // Update filtered list
+                    _filteredMovies = _searchQuery.isEmpty
+                        ? List.from(_movies)
+                        : _movies.where((m) =>
+                            m.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                            m.genre.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                            (m.director?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
+                          ).toList();
+                  });
+
+                  // Then refresh from backend after a delay to confirm
+                  Future.delayed(Duration(milliseconds: 1500)).then((_) {
+                    if (mounted) {
+                      _loadMovies();
+                    }
+                  });
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -685,7 +761,6 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
       descriptionController.dispose();
       directorController.dispose();
       yearController.dispose();
-      posterUrlController.dispose();
       ratingController.dispose();
       classificationController.dispose();
     });
@@ -726,18 +801,31 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
 
               try {
                 final success = await _moviesService.deleteMovie(movie.id);
-                
+
                 // Clear the loading snackbar
                 ScaffoldMessenger.of(context).clearSnackBars();
-                
+
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Película eliminada exitosamente'),
                       backgroundColor: AppColors.success,
+                      duration: Duration(seconds: 2),
                     ),
                   );
-                  _loadMovies(); // Refresh the list
+
+                  // Optimistic update: Remove movie from local state immediately
+                  setState(() {
+                    _movies.removeWhere((m) => m.id == movie.id);
+                    _filteredMovies.removeWhere((m) => m.id == movie.id);
+                  });
+
+                  // Then refresh from backend after a delay to confirm
+                  Future.delayed(Duration(milliseconds: 1500)).then((_) {
+                    if (mounted) {
+                      _loadMovies();
+                    }
+                  });
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -787,24 +875,28 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
             label: 'Total',
             value: '$totalMovies',
             color: AppColors.primary,
+            isDark: isDark,
           ),
           _buildStatItem(
             icon: Icons.visibility,
             label: 'Mostrando',
             value: '$filteredCount',
             color: AppColors.success,
+            isDark: isDark,
           ),
           _buildStatItem(
             icon: Icons.category,
             label: 'Géneros',
             value: '$genres',
             color: AppColors.warning,
+            isDark: isDark,
           ),
           _buildStatItem(
             icon: Icons.cloud_done,
             label: 'Estado',
             value: 'Conectado',
             color: AppColors.success,
+            isDark: isDark,
           ),
         ],
       ),
@@ -816,6 +908,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
     required String label,
     required String value,
     required Color color,
+    required bool isDark,
   }) {
     return Column(
       children: [
@@ -831,7 +924,7 @@ class _MoviesManagementPageState extends State<MoviesManagementPage> {
         Text(
           label,
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
       ],

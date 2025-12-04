@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../providers/booking_provider.dart';
 import '../widgets/seat_widget.dart';
 import '../widgets/screen_indicator.dart';
@@ -33,21 +34,39 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   void initState() {
     super.initState();
     // Set the movie in booking state
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(bookingProvider.notifier).setMovie(widget.movie);
 
-      // Get showtimes and select the one matching the time
-      final showtimes = ref.read(showtimesProvider(widget.movie.id));
-      final showtime = showtimes.firstWhere(
-        (st) => st.timeFormatted == widget.showtime,
-        orElse: () => showtimes.first,
-      );
+      try {
+        // Get showtimes and select the one matching the time
+        final showtimes = await ref.read(showtimesProvider(widget.movie.id).future);
 
-      setState(() {
-        _selectedShowtime = showtime;
-      });
+        if (showtimes.isEmpty) {
+          // No showtimes available
+          if (mounted) {
+            Navigator.pop(context);
+          }
+          return;
+        }
 
-      ref.read(bookingProvider.notifier).setShowtime(showtime);
+        final showtime = showtimes.firstWhere(
+          (st) => st.timeFormatted == widget.showtime,
+          orElse: () => showtimes.first,
+        );
+
+        if (mounted) {
+          setState(() {
+            _selectedShowtime = showtime;
+          });
+
+          ref.read(bookingProvider.notifier).setShowtime(showtime);
+        }
+      } catch (e) {
+        print('Error loading showtimes: $e');
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      }
     });
   }
 
@@ -182,9 +201,11 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   Widget _buildBottomBar(BuildContext context, BookingState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -209,7 +230,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                       Text(
                         '${state.seatCount} asiento${state.seatCount > 1 ? 's' : ''}',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         ),
                       ),
                       Text(
@@ -219,7 +240,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                     ],
                   ),
                   Text(
-                    '\$${state.totalPrice.toStringAsFixed(2)}',
+                    CurrencyFormatter.formatCRC(state.totalPrice),
                     style: AppTypography.headlineSmall.copyWith(
                       color: AppColors.primary,
                     ),
@@ -255,19 +276,21 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   void _showLegend(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(AppSpacing.radiusLG),
             topRight: Radius.circular(AppSpacing.radiusLG),
           ),
         ),
         padding: AppSpacing.pagePadding,
-        child: Column(
+        child: SingleChildScrollView(child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -277,7 +300,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
                   borderRadius: AppSpacing.borderRadiusRound,
                 ),
               ),
@@ -286,7 +309,14 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
               'Leyenda de Asientos',
               style: AppTypography.headlineSmall,
             ),
-            SizedBox(height: AppSpacing.lg),
+            SizedBox(height: AppSpacing.md),
+
+            // Estados de Asientos
+            Text(
+              'Estados',
+              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: AppSpacing.sm),
             _buildLegendItem(
               color: AppColors.primary,
               label: 'Seleccionado',
@@ -296,22 +326,46 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
               label: 'Disponible',
             ),
             _buildLegendItem(
-              color: AppColors.warning,
-              label: 'VIP - \$180',
-            ),
-            _buildLegendItem(
-              color: AppColors.surfaceVariant,
+              color: isDark ? AppColors.darkTextSecondary.withOpacity(0.4) : AppColors.lightTextSecondary.withOpacity(0.5),
               label: 'Ocupado',
               icon: Icons.close,
             ),
             _buildLegendItem(
+              color: Colors.grey.shade600,
+              label: 'No Disponible',
+              icon: Icons.block,
+            ),
+
+            SizedBox(height: AppSpacing.md),
+
+            // Tipos de Asientos
+            Text(
+              'Tipos de Asientos',
+              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: AppSpacing.sm),
+            _buildLegendItem(
+              color: AppColors.success,
+              label: 'Regular - ₡4,500',
+            ),
+            _buildLegendItem(
+              color: AppColors.vip,
+              label: 'VIP - ₡6,500',
+            ),
+            _buildLegendItem(
               color: AppColors.info,
-              label: 'Accesible - \$120',
+              label: 'Accesible - ₡4,500',
               icon: Icons.accessible,
+            ),
+            _buildLegendItem(
+              color: Colors.grey.shade300,
+              label: 'Pasillo',
+              icon: Icons.more_horiz,
+              hasBorder: true,
             ),
             SizedBox(height: AppSpacing.lg),
           ],
-        ),
+        )),
       ),
     );
   }
@@ -320,6 +374,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
     required Color color,
     required String label,
     IconData? icon,
+    bool hasBorder = false,
   }) {
     return Padding(
       padding: EdgeInsets.only(bottom: AppSpacing.md),
@@ -331,9 +386,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             decoration: BoxDecoration(
               color: color,
               borderRadius: AppSpacing.borderRadiusXS,
+              border: hasBorder ? Border.all(color: Colors.grey.shade400, width: 2) : null,
             ),
             child: icon != null
-                ? Icon(icon, color: Colors.white, size: 20)
+                ? Icon(icon, color: hasBorder ? Colors.grey.shade600 : Colors.white, size: 20)
                 : null,
           ),
           SizedBox(width: AppSpacing.md),

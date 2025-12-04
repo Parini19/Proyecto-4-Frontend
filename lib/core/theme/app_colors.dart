@@ -36,17 +36,17 @@ class AppColors {
   // ========== DARK THEME COLORS (Premium Cinema Experience) ==========
   // Deep blacks with blue undertones - not pure black (better for eyes)
   static const Color darkBackground = Color(0xFF0A0E17); // Deep blue-black
-  static const Color darkSurface = Color(0xFF12161F); // Dark surface
-  static const Color darkSurfaceVariant = Color(0xFF1E2430); // Lighter surface
-  static const Color darkSurfaceHover = Color(0xFF252B38); // Hover surface
-  static const Color darkSurfaceElevated = Color(0xFF1A1F2E); // Elevated surface
+  static const Color darkSurface = Color(0xFF141821); // Slightly lighter dark surface
+  static const Color darkSurfaceVariant = Color(0xFF1F2937); // More visible lighter surface
+  static const Color darkSurfaceHover = Color(0xFF2D3748); // Clearer hover surface
+  static const Color darkSurfaceElevated = Color(0xFF1E293B); // More elevated surface
 
   static const Color darkTextPrimary = Color(0xFFF8FAFC); // Almost white
-  static const Color darkTextSecondary = Color(0xFFCBD5E1); // Light slate
-  static const Color darkTextTertiary = Color(0xFF64748B); // Medium slate
+  static const Color darkTextSecondary = Color(0xFFE2E8F0); // Much lighter slate - better contrast
+  static const Color darkTextTertiary = Color(0xFFA8B4C6); // Lighter medium slate - improved visibility
 
-  static const Color darkBorder = Color(0xFF1E293B); // Dark border
-  static const Color darkBorderLight = Color(0xFF334155); // Subtle border
+  static const Color darkBorder = Color(0xFF334155); // Lighter dark border
+  static const Color darkBorderLight = Color(0xFF475569); // More visible subtle border
 
   // ========== DYNAMIC COLORS (Context-aware) ==========
   static Color background = lightBackground;

@@ -16,7 +16,8 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -39,12 +40,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -99,7 +101,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
         // Navigate based on user role
         final role = response.role?.toLowerCase() ?? 'user';
-        final Widget destination = role == 'admin' ? AdminDashboard() : HomePage();
+        final Widget destination = role == 'admin'
+            ? AdminDashboard()
+            : HomePage();
 
         Navigator.pushReplacement(
           context,
@@ -139,9 +143,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppSpacing.borderRadiusMD,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMD),
       ),
     );
   }
@@ -193,11 +195,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
                           SizedBox(height: AppSpacing.xl),
 
-                          // Social Login Options
-                          _buildSocialLogin(isDark),
-
-                          SizedBox(height: AppSpacing.xl),
-
                           // Sign Up Link
                           _buildSignUpLink(),
 
@@ -230,11 +227,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             shape: BoxShape.circle,
             boxShadow: isDark ? AppColors.glowShadow : AppColors.cardShadow,
           ),
-          child: Icon(
-            Icons.movie,
-            size: 50,
-            color: Colors.white,
-          ),
+          child: Icon(Icons.movie, size: 50, color: Colors.white),
         ),
         SizedBox(height: AppSpacing.lg),
         Text(
@@ -265,10 +258,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         borderRadius: AppSpacing.borderRadiusLG,
         boxShadow: isDark ? AppColors.elevatedShadow : AppColors.cardShadow,
         border: isDark
-            ? Border.all(
-                color: AppColors.primary.withOpacity(0.2),
-                width: 1,
-              )
+            ? Border.all(color: AppColors.primary.withOpacity(0.2), width: 1)
             : null,
       ),
       child: Form(
@@ -324,7 +314,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               obscureText: _obscurePassword,
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 onPressed: () {
@@ -342,30 +334,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               },
             ),
 
-            SizedBox(height: AppSpacing.sm),
-
-            // Forgot Password
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  // TODO: Implement forgot password
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Recuperación de contraseña próximamente'),
-                    ),
-                  );
-                },
-                child: Text(
-                  '¿Olvidaste tu contraseña?',
-                  style: AppTypography.labelMedium.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-
             SizedBox(height: AppSpacing.lg),
 
             // Login Button
@@ -375,108 +343,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               isFullWidth: true,
               size: ButtonSize.large,
               onPressed: _isLoading ? null : _login,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSocialLogin(bool isDark) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: Divider(color: Theme.of(context).colorScheme.outline)),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text(
-                'O continúa con',
-                style: AppTypography.labelMedium.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            Expanded(child: Divider(color: Theme.of(context).colorScheme.outline)),
-          ],
-        ),
-        SizedBox(height: AppSpacing.lg),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildSocialButton(
-              icon: Icons.g_mobiledata,
-              label: 'Google',
-              onTap: () {
-                // TODO: Implement Google login
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Login con Google próximamente')),
-                );
-              },
-              isDark: isDark,
-            ),
-            SizedBox(width: AppSpacing.md),
-            _buildSocialButton(
-              icon: Icons.apple,
-              label: 'Apple',
-              onTap: () {
-                // TODO: Implement Apple login
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Login con Apple próximamente')),
-                );
-              },
-              isDark: isDark,
-            ),
-            SizedBox(width: AppSpacing.md),
-            _buildSocialButton(
-              icon: Icons.facebook,
-              label: 'Facebook',
-              onTap: () {
-                // TODO: Implement Facebook login
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Login con Facebook próximamente')),
-                );
-              },
-              isDark: isDark,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required bool isDark,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppSpacing.borderRadiusMD,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkSurfaceVariant
-              : AppColors.lightSurfaceVariant,
-          borderRadius: AppSpacing.borderRadiusMD,
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 32, color: AppColors.primary),
-            SizedBox(height: 4),
-            Text(
-              label,
-              style: AppTypography.labelSmall.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
             ),
           ],
         ),
@@ -524,9 +390,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       icon: Icon(Icons.arrow_forward, size: 18),
       label: Text(
         'Continuar como invitado',
-        style: AppTypography.bodyMedium.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
       ),
       style: TextButton.styleFrom(
         foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,

@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 import '../../../core/models/movie_model.dart';
 import '../../../core/models/showtime.dart';
 import '../../../core/models/seat.dart';
 import '../../../core/models/food_item.dart';
+import '../../../core/models/screening.dart';
+import '../../../core/providers/service_providers.dart';
+import '../../../core/providers/cinema_provider.dart';
 
 /// State for the current booking flow
 class BookingState {
@@ -10,12 +14,20 @@ class BookingState {
   final Showtime? selectedShowtime;
   final List<Seat> selectedSeats;
   final List<CartItem> foodCart;
+  final String? bookingId;
+  final String? promoCode;
+  final double promoDiscount;
+  final double? bookingTotal; // Total from backend booking
 
   const BookingState({
     this.selectedMovie,
     this.selectedShowtime,
     this.selectedSeats = const [],
     this.foodCart = const [],
+    this.bookingId,
+    this.promoCode,
+    this.promoDiscount = 0.0,
+    this.bookingTotal,
   });
 
   BookingState copyWith({
@@ -23,12 +35,20 @@ class BookingState {
     Showtime? selectedShowtime,
     List<Seat>? selectedSeats,
     List<CartItem>? foodCart,
+    String? bookingId,
+    String? promoCode,
+    double? promoDiscount,
+    double? bookingTotal,
   }) {
     return BookingState(
       selectedMovie: selectedMovie ?? this.selectedMovie,
       selectedShowtime: selectedShowtime ?? this.selectedShowtime,
       selectedSeats: selectedSeats ?? this.selectedSeats,
       foodCart: foodCart ?? this.foodCart,
+      bookingId: bookingId ?? this.bookingId,
+      promoCode: promoCode ?? this.promoCode,
+      promoDiscount: promoDiscount ?? this.promoDiscount,
+      bookingTotal: bookingTotal ?? this.bookingTotal,
     );
   }
 
@@ -40,7 +60,10 @@ class BookingState {
     return foodCart.fold(0.0, (sum, item) => sum + item.totalPrice);
   }
 
-  double get totalPrice => seatsTotal + foodTotal;
+  double get subtotal => seatsTotal + foodTotal;
+
+  // Use booking total from backend if available, otherwise calculate locally
+  double get totalPrice => bookingTotal ?? (subtotal - promoDiscount).clamp(0, double.infinity);
 
   int get seatCount => selectedSeats.length;
 
@@ -94,6 +117,17 @@ class BookingNotifier extends Notifier<BookingState> {
 
   void clearSelection() {
     state = state.copyWith(selectedSeats: []);
+  }
+
+  void setBookingId(String bookingId) {
+    state = state.copyWith(bookingId: bookingId);
+  }
+
+  void setBookingDetails(String bookingId, double total) {
+    state = state.copyWith(
+      bookingId: bookingId,
+      bookingTotal: total,
+    );
   }
 
   void reset() {
@@ -153,6 +187,47 @@ class BookingNotifier extends Notifier<BookingState> {
     );
     return item.quantity;
   }
+
+  // Promo code methods
+  bool applyPromoCode(String code) {
+    final upperCode = code.trim().toUpperCase();
+    double discount = 0.0;
+
+    switch (upperCode) {
+      case '2X1CINE':
+        // 50% off on total
+        discount = state.subtotal * 0.5;
+        break;
+      case 'FAMILIA':
+        // Fixed 5000 colones off
+        discount = 5000.0;
+        break;
+      case 'HAPPYHOUR':
+        // 30% off on total
+        discount = state.subtotal * 0.3;
+        break;
+      case 'ESTUDIANTE':
+        // 25% off on total
+        discount = state.subtotal * 0.25;
+        break;
+      default:
+        // Invalid code
+        return false;
+    }
+
+    state = state.copyWith(
+      promoCode: upperCode,
+      promoDiscount: discount,
+    );
+    return true;
+  }
+
+  void removePromoCode() {
+    state = state.copyWith(
+      promoCode: null,
+      promoDiscount: 0.0,
+    );
+  }
 }
 
 /// Provider for booking state
@@ -160,7 +235,173 @@ final bookingProvider = NotifierProvider<BookingNotifier, BookingState>(() {
   return BookingNotifier();
 });
 
-/// Provider for available showtimes
-final showtimesProvider = Provider.family<List<Showtime>, String>((ref, movieId) {
-  return getMockShowtimes(movieId);
+/// Helper function to convert Screening to Showtime with REAL seat configuration
+Future<Showtime> _screeningToShowtime(
+  Screening screening,
+  theaterRoomService,
+  bookingService,
+  cinemaService,
+) async {
+  try {
+    // Get the theater room configuration
+    final theaterRoom = await theaterRoomService.getTheaterRoomById(screening.theaterRoomId);
+
+    // Get the cinema information
+    final cinema = await cinemaService.getCinemaById(screening.cinemaId);
+
+    List<Seat> seats;
+    int totalSeats;
+
+    if (theaterRoom != null && theaterRoom.seatConfiguration != null) {
+      // Parse seat configuration - handle both String and Map
+      Map<String, dynamic>? config;
+
+      if (theaterRoom.seatConfiguration is String) {
+        // Parse JSON string
+        try {
+          config = jsonDecode(theaterRoom.seatConfiguration as String) as Map<String, dynamic>;
+          print('✅ Parsed seatConfiguration from JSON string');
+        } catch (e) {
+          print('❌ Error parsing JSON string: $e');
+          config = null;
+        }
+      } else if (theaterRoom.seatConfiguration is Map) {
+        config = theaterRoom.seatConfiguration as Map<String, dynamic>;
+        print('✅ seatConfiguration already a Map');
+      } else {
+        config = null;
+      }
+
+      if (config != null) {
+        final rows = config['rows'] as int? ?? 8;
+        final columns = config['columns'] as int? ?? 12;
+        final seatsList = config['seats'] as List<dynamic>? ?? [];
+
+        print('🔍 DEBUG: Parsing ${seatsList.length} seats from configuration (${rows}x${columns})');
+
+      // Get occupied seats from real bookings
+      final occupiedSeatNumbers = await bookingService.getOccupiedSeats(screening.id);
+
+      // Generate seats from configuration
+      seats = [];
+      for (var seatConfig in seatsList) {
+        final seatMap = seatConfig as Map<String, dynamic>;
+        final row = seatMap['row'] as int;
+        final col = seatMap['col'] as int;
+        final typeStr = seatMap['type'] as String;
+
+
+        final seatId = 'R${row}S${col + 1}';
+        final isOccupied = occupiedSeatNumbers.contains(seatId);
+
+        // Map admin seat types to booking seat types
+        SeatType seatType;
+        switch (typeStr) {
+          case 'vip':
+            seatType = SeatType.vip;
+            break;
+          case 'wheelchair':
+          case 'disabled':
+            seatType = SeatType.wheelchair;
+            break;
+          case 'empty':
+            seatType = SeatType.empty;
+            break;
+          case 'normal':
+          default:
+            seatType = SeatType.regular;
+        }
+
+        seats.add(Seat(
+          id: seatId,
+          row: row,
+          number: col + 1,
+          type: seatType,
+          status: seatType == SeatType.empty ? SeatStatus.occupied : (isOccupied ? SeatStatus.occupied : SeatStatus.available),
+        ));
+      }
+
+      totalSeats = seats.length;
+      }
+       else {
+        // Config parsing failed, use fallback
+        print('⚠️ Invalid seat configuration format, using fallback');
+        final occupiedSeats = await bookingService.getOccupiedSeats(screening.id);
+        seats = generateMockSeats(
+          rows: 8,
+          seatsPerRow: 12,
+          occupiedSeats: occupiedSeats,
+        );
+        totalSeats = 96;
+      }
+    } else {
+      // Fallback to mock data if no configuration exists
+      print('⚠️ No seat configuration found for room ${screening.theaterRoomId}, using fallback');
+      final occupiedSeats = await bookingService.getOccupiedSeats(screening.id);
+      seats = generateMockSeats(
+        rows: 8,
+        seatsPerRow: 12,
+        occupiedSeats: occupiedSeats,
+      );
+      totalSeats = 96;
+    }
+
+    return Showtime(
+      id: screening.id,
+      movieId: screening.movieId,
+      cinemaHall: theaterRoom?.name ?? 'Sala Desconocida',
+      cinemaName: cinema?.name,
+      dateTime: screening.startTime,
+      seats: seats,
+      totalSeats: totalSeats,
+      availableSeats: seats.where((s) => s.status == SeatStatus.available).length,
+    );
+  } catch (e) {
+    print('❌ Error converting screening to showtime: $e');
+    // Fallback to mock data on error
+    final seats = generateMockSeats(rows: 8, seatsPerRow: 12, occupiedSeats: []);
+    return Showtime(
+      id: screening.id,
+      movieId: screening.movieId,
+      cinemaHall: 'Sala Desconocida',
+      cinemaName: null,
+      dateTime: screening.startTime,
+      seats: seats,
+      totalSeats: 96,
+      availableSeats: seats.where((s) => s.status == SeatStatus.available).length,
+    );
+  }
+}
+
+/// Provider for available showtimes - fetches from backend with REAL seat data
+final showtimesProvider = FutureProvider.family<List<Showtime>, String>((ref, movieId) async {
+  try {
+    final screeningService = ref.watch(screeningServiceProvider);
+    final theaterRoomService = ref.watch(theaterRoomServiceProvider);
+    final bookingService = ref.watch(bookingServiceProvider);
+    final cinemaService = ref.watch(cinemaLocationServiceProvider);
+
+    final screenings = await screeningService.getScreeningsByMovieId(movieId);
+
+    // Filter only future screenings
+    final futureScreenings = screenings.where((s) => s.isFuture).toList();
+
+    // Convert screenings to showtimes with REAL seat configuration
+    final showtimes = <Showtime>[];
+    for (var screening in futureScreenings.take(5)) {
+      final showtime = await _screeningToShowtime(
+        screening,
+        theaterRoomService,
+        bookingService,
+        cinemaService,
+      );
+      showtimes.add(showtime);
+    }
+
+    return showtimes;
+  } catch (e) {
+    print('Error fetching showtimes: $e');
+    // Fallback to mock data if API fails
+    return getMockShowtimes(movieId).take(5).toList();
+  }
 });

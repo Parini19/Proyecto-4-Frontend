@@ -5,19 +5,193 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
 import '../../../core/models/seat.dart';
+import '../../../core/models/booking.dart';
+import '../../../core/providers/service_providers.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../providers/booking_provider.dart';
 import 'payment_page.dart';
 
-class CheckoutSummaryPage extends ConsumerWidget {
+class CheckoutSummaryPage extends ConsumerStatefulWidget {
   const CheckoutSummaryPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CheckoutSummaryPage> createState() => _CheckoutSummaryPageState();
+}
+
+class _CheckoutSummaryPageState extends ConsumerState<CheckoutSummaryPage> {
+  bool _isCreatingBooking = false;
+  final _promoCodeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _promoCodeController.dispose();
+    super.dispose();
+  }
+
+  void _handleApplyPromoCode() {
+    final code = _promoCodeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingresa un código promocional'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    final success = ref.read(bookingProvider.notifier).applyPromoCode(code);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('¡Promoción "$code" aplicada!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      _promoCodeController.clear();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Código promocional inválido'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  void _handleRemovePromoCode() {
+    ref.read(bookingProvider.notifier).removePromoCode();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Promoción removida'),
+        backgroundColor: AppColors.info,
+      ),
+    );
+  }
+
+  Future<void> _handleContinueToPayment() async {
+    final bookingState = ref.read(bookingProvider);
+    final authService = AuthService();
+
+    // Check if user is authenticated
+    if (!authService.isAuthenticated || authService.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para continuar'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Check if this is a food-only order or a movie booking
+    final isFoodOnlyOrder = bookingState.selectedShowtime == null || bookingState.selectedSeats.isEmpty;
+
+    // Validate that there's something to purchase
+    if (isFoodOnlyOrder && bookingState.foodCart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay productos para comprar'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // If not food-only, validate movie booking
+    if (!isFoodOnlyOrder && (bookingState.selectedShowtime == null || bookingState.selectedSeats.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No hay asientos seleccionados'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isCreatingBooking = true;
+    });
+
+    try {
+      // If it's a food-only order, skip booking creation and go directly to payment
+      if (isFoodOnlyOrder) {
+        // Navigate to payment page for food-only order
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PaymentPage(),
+            ),
+          );
+        }
+      } else {
+        // Create booking for movie + optional food
+        final bookingService = ref.read(bookingServiceProvider);
+
+        // Calculate ticket price (average of all selected seats)
+        final ticketPrice = bookingState.seatsTotal / bookingState.selectedSeats.length;
+
+        // Create booking request
+        final request = CreateBookingRequest(
+          userId: authService.currentUser!.uid,
+          screeningId: bookingState.selectedShowtime!.id,
+          seatNumbers: bookingState.selectedSeats.map((s) => s.seatLabel).toList(),
+          ticketPrice: ticketPrice,
+          foodOrderId: null, // TODO: Implement food order ID if needed
+        );
+
+        // Create booking
+        final booking = await bookingService.createBooking(request);
+
+        // Save booking ID and total from backend to state
+        ref.read(bookingProvider.notifier).setBookingDetails(
+          booking.id,
+          booking.total,
+        );
+
+        // Navigate to payment page
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PaymentPage(),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al crear la reserva: $e'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreatingBooking = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bookingState = ref.watch(bookingProvider);
+    final isFoodOnlyOrder = bookingState.selectedShowtime == null || bookingState.selectedSeats.isEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resumen de Compra', style: AppTypography.headlineSmall),
+        title: Text(
+          isFoodOnlyOrder ? 'Resumen de Pedido' : 'Resumen de Compra',
+          style: AppTypography.headlineSmall,
+        ),
       ),
       body: Column(
         children: [
@@ -27,17 +201,19 @@ class CheckoutSummaryPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Movie Info Card
-                  _buildMovieInfoCard(bookingState),
+                  // Movie Info Card (only if there's a movie selected)
+                  if (bookingState.selectedMovie != null && bookingState.selectedShowtime != null) ...[
+                    _buildMovieInfoCard(bookingState),
+                    SizedBox(height: AppSpacing.lg),
+                  ],
 
-                  SizedBox(height: AppSpacing.lg),
-
-                  // Seats Summary
-                  _buildSectionHeader('Asientos Seleccionados'),
-                  SizedBox(height: AppSpacing.sm),
-                  _buildSeatsCard(bookingState),
-
-                  SizedBox(height: AppSpacing.lg),
+                  // Seats Summary (only if there are seats selected)
+                  if (bookingState.selectedSeats.isNotEmpty) ...[
+                    _buildSectionHeader('Asientos Seleccionados'),
+                    SizedBox(height: AppSpacing.sm),
+                    _buildSeatsCard(bookingState),
+                    SizedBox(height: AppSpacing.lg),
+                  ],
 
                   // Food Summary
                   if (bookingState.foodCart.isNotEmpty) ...[
@@ -46,6 +222,12 @@ class CheckoutSummaryPage extends ConsumerWidget {
                     _buildFoodCard(bookingState),
                     SizedBox(height: AppSpacing.lg),
                   ],
+
+                  // Promo Code Section
+                  _buildSectionHeader('Código Promocional'),
+                  SizedBox(height: AppSpacing.sm),
+                  _buildPromoCodeSection(bookingState),
+                  SizedBox(height: AppSpacing.lg),
 
                   // Price Breakdown
                   _buildSectionHeader('Desglose de Precios'),
@@ -72,11 +254,12 @@ class CheckoutSummaryPage extends ConsumerWidget {
 
     final movie = state.selectedMovie!;
     final showtime = state.selectedShowtime!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: AppSpacing.pagePadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
         borderRadius: AppSpacing.borderRadiusMD,
       ),
       child: Row(
@@ -148,11 +331,104 @@ class CheckoutSummaryPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSeatsCard(BookingState state) {
+  Widget _buildPromoCodeSection(BookingState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasPromo = state.promoCode != null;
+
     return Container(
       padding: AppSpacing.pagePadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+        borderRadius: AppSpacing.borderRadiusMD,
+      ),
+      child: hasPromo
+          ? Row(
+              children: [
+                Icon(Icons.local_offer, color: AppColors.success, size: 20),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Código aplicado',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        state.promoCode!,
+                        style: AppTypography.titleMedium.copyWith(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _handleRemovePromoCode,
+                  icon: Icon(Icons.close, size: 18),
+                  label: Text('Quitar'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _promoCodeController,
+                    decoration: InputDecoration(
+                      hintText: 'Ingresa tu código',
+                      hintStyle: TextStyle(color: AppColors.textTertiary),
+                      border: OutlineInputBorder(
+                        borderRadius: AppSpacing.borderRadiusSM,
+                        borderSide: BorderSide(color: AppColors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: AppSpacing.borderRadiusSM,
+                        borderSide: BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: AppSpacing.borderRadiusSM,
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                  ),
+                ),
+                SizedBox(width: AppSpacing.sm),
+                ElevatedButton(
+                  onPressed: _handleApplyPromoCode,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.md,
+                    ),
+                  ),
+                  child: Text('Aplicar'),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildSeatsCard(BookingState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: AppSpacing.pagePadding,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
         borderRadius: AppSpacing.borderRadiusMD,
       ),
       child: Column(
@@ -189,7 +465,7 @@ class CheckoutSummaryPage extends ConsumerWidget {
                   ],
                 ),
                 Text(
-                  '\$${seat.type.price.toStringAsFixed(2)}',
+                  CurrencyFormatter.formatCRC(seat.type.price),
                   style: AppTypography.titleMedium,
                 ),
               ],
@@ -201,10 +477,12 @@ class CheckoutSummaryPage extends ConsumerWidget {
   }
 
   Widget _buildFoodCard(BookingState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: AppSpacing.pagePadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
         borderRadius: AppSpacing.borderRadiusMD,
       ),
       child: Column(
@@ -235,7 +513,7 @@ class CheckoutSummaryPage extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '\$${cartItem.totalPrice.toStringAsFixed(2)}',
+                  CurrencyFormatter.formatCRC(cartItem.totalPrice),
                   style: AppTypography.titleMedium,
                 ),
               ],
@@ -247,19 +525,37 @@ class CheckoutSummaryPage extends ConsumerWidget {
   }
 
   Widget _buildPriceBreakdown(BookingState state) {
+    final hasSeats = state.selectedSeats.isNotEmpty;
+    final hasFood = state.foodTotal > 0;
+    final hasPromo = state.promoCode != null && state.promoDiscount > 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: AppSpacing.pagePadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
         borderRadius: AppSpacing.borderRadiusMD,
       ),
       child: Column(
         children: [
-          _buildPriceRow('Asientos', state.seatsTotal),
-          if (state.foodTotal > 0) ...[
-            Divider(height: AppSpacing.lg, color: AppColors.border),
+          // Show seats row only if there are seats selected
+          if (hasSeats) _buildPriceRow('Asientos', state.seatsTotal),
+
+          // Show food row if there's food
+          if (hasFood) ...[
+            if (hasSeats) Divider(height: AppSpacing.lg, color: AppColors.border),
             _buildPriceRow('Alimentos', state.foodTotal),
           ],
+
+          // Show subtotal if there's a promo
+          if (hasPromo) ...[
+            Divider(height: AppSpacing.lg, color: AppColors.border),
+            _buildPriceRow('Subtotal', state.subtotal),
+            SizedBox(height: AppSpacing.xs),
+            _buildDiscountRow('Descuento', state.promoDiscount),
+          ],
+
+          // Always show total
           Divider(height: AppSpacing.lg, color: AppColors.border),
           _buildPriceRow(
             'Total',
@@ -284,7 +580,7 @@ class CheckoutSummaryPage extends ConsumerWidget {
                 : AppTypography.bodyLarge,
           ),
           Text(
-            '\$${amount.toStringAsFixed(2)}',
+            CurrencyFormatter.formatCRC(amount),
             style: isTotal
                 ? AppTypography.headlineSmall.copyWith(color: AppColors.primary)
                 : AppTypography.titleMedium,
@@ -294,10 +590,42 @@ class CheckoutSummaryPage extends ConsumerWidget {
     );
   }
 
+  Widget _buildDiscountRow(String label, double amount) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.local_offer, color: AppColors.success, size: 16),
+              SizedBox(width: AppSpacing.xs),
+              Text(
+                label,
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.success,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            '- ${CurrencyFormatter.formatCRC(amount)}',
+            style: AppTypography.titleMedium.copyWith(
+              color: AppColors.success,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomBar(BuildContext context, BookingState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -319,7 +647,7 @@ class CheckoutSummaryPage extends ConsumerWidget {
                   style: AppTypography.titleLarge,
                 ),
                 Text(
-                  '\$${state.totalPrice.toStringAsFixed(2)}',
+                  CurrencyFormatter.formatCRC(state.totalPrice),
                   style: AppTypography.headlineSmall.copyWith(
                     color: AppColors.primary,
                   ),
@@ -328,18 +656,11 @@ class CheckoutSummaryPage extends ConsumerWidget {
             ),
             SizedBox(height: AppSpacing.md),
             CinemaButton(
-              text: 'Continuar al Pago',
+              text: _isCreatingBooking ? 'Creando reserva...' : 'Continuar al Pago',
               icon: Icons.payment,
               isFullWidth: true,
               size: ButtonSize.large,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PaymentPage(),
-                  ),
-                );
-              },
+              onPressed: _isCreatingBooking ? null : _handleContinueToPayment,
             ),
           ],
         ),
@@ -355,6 +676,8 @@ class CheckoutSummaryPage extends ConsumerWidget {
         return AppColors.warning;
       case SeatType.wheelchair:
         return AppColors.info;
+      case SeatType.empty:
+        return Colors.grey;
     }
   }
 
@@ -366,6 +689,8 @@ class CheckoutSummaryPage extends ConsumerWidget {
         return 'VIP';
       case SeatType.wheelchair:
         return 'Accesible';
+      case SeatType.empty:
+        return 'Pasillo';
     }
   }
 }

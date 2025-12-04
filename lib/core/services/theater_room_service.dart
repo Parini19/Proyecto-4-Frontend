@@ -164,6 +164,7 @@ class TheaterRoomService {
       final defaultRooms = [
         TheaterRoom(
           id: _generateRoomId(),
+          cinemaId: 'DEFAULT_CINEMA',
           name: 'Sala 1 - Premium',
           capacity: 120,
           description: 'Sala premium con asientos reclinables y sonido Dolby Atmos',
@@ -174,6 +175,7 @@ class TheaterRoomService {
         ),
         TheaterRoom(
           id: _generateRoomId(),
+          cinemaId: 'DEFAULT_CINEMA',
           name: 'Sala 2 - Estándar',
           capacity: 180,
           description: 'Sala estándar con excelente calidad de audio y video',
@@ -184,6 +186,7 @@ class TheaterRoomService {
         ),
         TheaterRoom(
           id: _generateRoomId(),
+          cinemaId: 'DEFAULT_CINEMA',
           name: 'Sala 3 - VIP',
           capacity: 80,
           description: 'Experiencia VIP con servicio de mesero y asientos de lujo',

@@ -61,6 +61,7 @@ class Seat {
 enum SeatType {
   regular,
   vip,
+  empty, // For aisles/empty spaces
   wheelchair,
 }
 
@@ -76,11 +77,13 @@ extension SeatTypeExtension on SeatType {
   double get price {
     switch (this) {
       case SeatType.regular:
-        return 120.0; // MXN
+        return 4500.0; // CRC (Colones)
       case SeatType.vip:
-        return 180.0; // MXN
+        return 6500.0; // CRC (Colones)
       case SeatType.wheelchair:
-        return 120.0; // MXN
+        return 4500.0; // CRC (Colones)
+      case SeatType.empty:
+        return 0.0; // Empty spaces are not sellable
     }
   }
 
@@ -92,6 +95,8 @@ extension SeatTypeExtension on SeatType {
         return 'VIP';
       case SeatType.wheelchair:
         return 'Accesible';
+      case SeatType.empty:
+        return 'Pasillo';
     }
   }
 }

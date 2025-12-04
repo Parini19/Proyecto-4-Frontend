@@ -1,24 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../providers/booking_provider.dart';
+import '../../user/pages/my_tickets_page.dart';
 
 class ConfirmationPage extends ConsumerWidget {
-  final String email;
+  final String bookingId;
+  final String invoiceNumber;
+  final int ticketsGenerated;
+  final String? confirmationEmail;
 
   const ConfirmationPage({
     super.key,
-    required this.email,
+    required this.bookingId,
+    required this.invoiceNumber,
+    required this.ticketsGenerated,
+    this.confirmationEmail,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookingState = ref.watch(bookingProvider);
-    final confirmationCode = _generateConfirmationCode();
+    final authService = AuthService();
+    final userEmail = confirmationEmail ?? authService.currentUser?.email ?? 'usuario@ejemplo.com';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: SafeArea(
@@ -50,7 +60,7 @@ class ConfirmationPage extends ConsumerWidget {
                       SizedBox(height: AppSpacing.xl),
 
                       Text(
-                        'Compra Exitosa!',
+                        '¡Compra Exitosa!',
                         style: AppTypography.displaySmall,
                         textAlign: TextAlign.center,
                       ),
@@ -68,7 +78,7 @@ class ConfirmationPage extends ConsumerWidget {
                       SizedBox(height: AppSpacing.xs),
 
                       Text(
-                        email,
+                        userEmail,
                         style: AppTypography.titleMedium.copyWith(
                           color: AppColors.primary,
                         ),
@@ -77,11 +87,11 @@ class ConfirmationPage extends ConsumerWidget {
 
                       SizedBox(height: AppSpacing.xxl),
 
-                      // Confirmation code
+                      // Booking details
                       Container(
                         padding: AppSpacing.pagePadding,
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurface,
                           borderRadius: AppSpacing.borderRadiusMD,
                           border: Border.all(
                             color: AppColors.primary.withOpacity(0.3),
@@ -90,79 +100,34 @@ class ConfirmationPage extends ConsumerWidget {
                         ),
                         child: Column(
                           children: [
-                            Text(
-                              'Código de Confirmación',
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            SizedBox(height: AppSpacing.sm),
-                            Text(
-                              confirmationCode,
-                              style: AppTypography.displaySmall.copyWith(
-                                color: AppColors.primary,
-                                letterSpacing: 4,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: AppSpacing.sm),
-                            Text(
-                              'Muestra este código en el cine',
-                              style: AppTypography.labelSmall.copyWith(
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
+                            _buildInfoRow('Código de Reserva', bookingId.substring(0, 8).toUpperCase(), isDark),
+                            Divider(height: AppSpacing.lg, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            _buildInfoRow('Número de Factura', invoiceNumber, isDark),
+                            Divider(height: AppSpacing.lg, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            _buildInfoRow('Boletos Generados', ticketsGenerated.toString(), isDark),
                           ],
                         ),
                       ),
 
                       SizedBox(height: AppSpacing.xl),
 
-                      // QR Code placeholder
-                      Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: AppSpacing.borderRadiusMD,
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.qr_code_2,
-                                size: 120,
-                                color: Colors.grey[300],
-                              ),
-                              SizedBox(height: AppSpacing.sm),
-                              Text(
-                                'Código QR',
-                                style: AppTypography.labelMedium.copyWith(
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: AppSpacing.xl),
-
-                      // Booking details
+                      // Booking details summary
                       if (bookingState.selectedMovie != null) ...[
                         _buildDetailRow(
                           'Película',
                           bookingState.selectedMovie!.title,
+                          isDark,
                         ),
                         if (bookingState.selectedShowtime != null) ...[
                           _buildDetailRow(
                             'Sala',
                             bookingState.selectedShowtime!.cinemaHall,
+                            isDark,
                           ),
                           _buildDetailRow(
                             'Horario',
                             bookingState.selectedShowtime!.timeFormatted,
+                            isDark,
                           ),
                         ],
                         _buildDetailRow(
@@ -170,12 +135,42 @@ class ConfirmationPage extends ConsumerWidget {
                           bookingState.selectedSeats
                               .map((s) => s.seatLabel)
                               .join(', '),
+                          isDark,
                         ),
                         _buildDetailRow(
                           'Total Pagado',
-                          '\$${bookingState.totalPrice.toStringAsFixed(2)}',
+                          CurrencyFormatter.formatCRC(bookingState.totalPrice),
+                          isDark,
                         ),
                       ],
+
+                      SizedBox(height: AppSpacing.xxl),
+
+                      // Information message
+                      Container(
+                        padding: AppSpacing.paddingMD,
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withOpacity(0.1),
+                          borderRadius: AppSpacing.borderRadiusMD,
+                          border: Border.all(
+                            color: AppColors.info.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: AppColors.info),
+                            SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Text(
+                                'Tus boletos digitales con códigos QR han sido enviados a tu correo electrónico',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
                       SizedBox(height: AppSpacing.xxl),
                     ],
@@ -192,13 +187,22 @@ class ConfirmationPage extends ConsumerWidget {
                     isFullWidth: true,
                     size: ButtonSize.large,
                     onPressed: () {
+                      // Reset booking state
+                      ref.read(bookingProvider.notifier).reset();
+                      // Pop all routes until home
                       Navigator.of(context).popUntil((route) => route.isFirst);
-                      // TODO: Navigate to tickets tab
+                      // Navigate to tickets page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MyTicketsPage()),
+                      );
                     },
                   ),
                   SizedBox(height: AppSpacing.md),
                   OutlinedButton(
                     onPressed: () {
+                      // Reset booking state
+                      ref.read(bookingProvider.notifier).reset();
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     },
                     style: OutlinedButton.styleFrom(
@@ -216,13 +220,38 @@ class ConfirmationPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+          ),
+        ),
+        Text(
+          value,
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, bool isDark) {
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
       padding: AppSpacing.pagePadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
         borderRadius: AppSpacing.borderRadiusMD,
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -230,27 +259,22 @@ class ConfirmationPage extends ConsumerWidget {
           Text(
             label,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+              fontWeight: FontWeight.w600,
             ),
           ),
           Flexible(
             child: Text(
               value,
-              style: AppTypography.titleMedium,
+              style: AppTypography.titleMedium.copyWith(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.end,
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _generateConfirmationCode() {
-    final random = Random();
-    final code = List.generate(
-      6,
-      (index) => random.nextInt(10).toString(),
-    ).join();
-    return code;
   }
 }
