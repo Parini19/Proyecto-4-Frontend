@@ -18,7 +18,6 @@ import 'food_combos_management_page.dart';
 import 'food_orders_management_page.dart';
 import 'audit_log_management_page.dart';
 import 'reports_page.dart';
-import 'settings_page.dart';
 import 'claims_management_page.dart';
 import '../presentation/pages/cinema_management_page.dart';
 import '../../home/home_page.dart';
@@ -49,7 +48,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     FoodOrdersManagementPage(),
     UsersManagementPage(),
     ClaimsManagementPage(),
-    AuditLogManagementPage()
+    AuditLogManagementPage(),
   ];
 
   @override
@@ -74,11 +73,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   children: [
                     // Mobile App Bar
                     if (isMobile) _buildMobileAppBar(isDark),
-                    
+
                     // Page Content
-                    Expanded(
-                      child: _pages[_selectedIndex],
-                    ),
+                    Expanded(child: _pages[_selectedIndex]),
                   ],
                 ),
               ),
@@ -123,10 +120,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     shape: BoxShape.circle,
                     boxShadow: isDark ? AppColors.glowShadow : null,
                   ),
-                  child: Icon(
-                    Icons.admin_panel_settings,
-                    color: Colors.white,
-                  ),
+                  child: Icon(Icons.admin_panel_settings, color: Colors.white),
                 ),
                 SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -141,11 +135,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                       Builder(
                         builder: (context) {
-                          final isDark = Theme.of(context).brightness == Brightness.dark;
+                          final isDark =
+                              Theme.of(context).brightness == Brightness.dark;
                           return Text(
                             'Cinema Management',
                             style: AppTypography.bodySmall.copyWith(
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
                             ),
                           );
                         },
@@ -267,20 +264,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
                   ),
                 ),
-                _buildQuickAction(
-                  icon: Icons.settings,
-                  label: 'Configuración',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
-                  },
-                  isDark: isDark,
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
-                  ),
-                ),
               ],
             ),
           ),
@@ -336,9 +319,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         selected: isSelected,
         selectedTileColor: AppColors.primary.withOpacity(0.1),
-        shape: RoundedRectangleBorder(
-          borderRadius: AppSpacing.borderRadiusMD,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMD),
         onTap: () {
           setState(() => _selectedIndex = index);
         },
@@ -396,7 +377,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios, color: Colors.white.withOpacity(0.7), size: 14),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 14,
+                ),
               ],
             ),
           ),
@@ -463,26 +448,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     Text(
                       _getPageTitle(_selectedIndex),
                       style: AppTypography.bodySmall.copyWith(
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.notifications_outlined,
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                ),
-                onPressed: () {},
-              ),
-              Padding(
-                padding: EdgeInsets.only(right: AppSpacing.sm),
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: AppColors.primary,
-                  child: Icon(Icons.person, color: Colors.white, size: 18),
                 ),
               ),
             ],
@@ -495,7 +467,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildDrawer(bool isDark) {
     return Drawer(
       width: 280, // Fixed width for consistency with desktop sidebar
-      backgroundColor: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+      backgroundColor: isDark
+          ? AppColors.darkSurfaceElevated
+          : AppColors.lightSurfaceElevated,
       child: Column(
         children: [
           // Drawer Header
@@ -503,7 +477,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
             height: 120,
             padding: AppSpacing.paddingLG,
             decoration: BoxDecoration(
-              gradient: isDark ? AppColors.cinemaGradient : AppColors.primaryGradient,
+              gradient: isDark
+                  ? AppColors.cinemaGradient
+                  : AppColors.primaryGradient,
             ),
             child: SafeArea(
               child: Row(
@@ -652,18 +628,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   },
                   isDark: isDark,
                 ),
-                _buildDrawerQuickAction(
-                  icon: Icons.settings,
-                  label: 'Configuración',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
-                  },
-                  isDark: isDark,
-                ),
               ],
             ),
           ),
@@ -708,8 +672,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       margin: EdgeInsets.only(bottom: AppSpacing.xs),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, 
-          vertical: AppSpacing.xs
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
         ), // Better touch targets
         leading: Icon(
           icon,
@@ -724,9 +688,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         selected: isSelected,
         selectedTileColor: AppColors.primary.withOpacity(0.1),
-        shape: RoundedRectangleBorder(
-          borderRadius: AppSpacing.borderRadiusMD,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMD),
         onTap: () {
           setState(() => _selectedIndex = index);
           Navigator.pop(context); // Close drawer
@@ -743,8 +705,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }) {
     return ListTile(
       contentPadding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.md, 
-        vertical: AppSpacing.xs
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
       ), // Better touch targets
       leading: Container(
         padding: EdgeInsets.all(AppSpacing.xs),
@@ -756,14 +718,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
       title: Text(
         label,
-        style: AppTypography.bodyMedium.copyWith(
-          fontWeight: FontWeight.w500,
-        ),
+        style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,
         size: 14,
-        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+        color: isDark
+            ? AppColors.darkTextTertiary
+            : AppColors.lightTextTertiary,
       ),
       onTap: onTap,
     );
@@ -771,17 +733,28 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   String _getPageTitle(int index) {
     switch (index) {
-      case 0: return 'Dashboard';
-      case 1: return 'Cines / Sedes';
-      case 2: return 'Películas';
-      case 3: return 'Funciones';
-      case 4: return 'Salas de Cine';
-      case 5: return 'Combos de Comida';
-      case 6: return 'Órdenes de Comida';
-      case 7: return 'Usuarios';
-      case 8: return 'Reclamos';
-      case 9: return 'Bitácora';
-      default: return 'Admin Panel';
+      case 0:
+        return 'Dashboard';
+      case 1:
+        return 'Cines / Sedes';
+      case 2:
+        return 'Películas';
+      case 3:
+        return 'Funciones';
+      case 4:
+        return 'Salas de Cine';
+      case 5:
+        return 'Combos de Comida';
+      case 6:
+        return 'Órdenes de Comida';
+      case 7:
+        return 'Usuarios';
+      case 8:
+        return 'Reclamos';
+      case 9:
+        return 'Bitácora';
+      default:
+        return 'Admin Panel';
     }
   }
 }
@@ -798,31 +771,22 @@ class _DashboardOverview extends ConsumerWidget {
     final isMobile = screenWidth < 768.0;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: !isMobile ? AppBar(
-        title: Text(
-          'Dashboard',
-          style: AppTypography.headlineMedium.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
-          SizedBox(width: AppSpacing.sm),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primary,
-            child: Icon(Icons.person, color: Colors.white, size: 20),
-          ),
-          SizedBox(width: AppSpacing.md),
-        ],
-      ) : null,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
+      appBar: !isMobile
+          ? AppBar(
+              title: Text(
+                'Dashboard',
+                style: AppTypography.headlineMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+            )
+          : null,
       body: moviesAsync.when(
         loading: () => Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
@@ -838,9 +802,13 @@ class _DashboardOverview extends ConsumerWidget {
               final now = DateTime.now();
               final today = DateTime(now.year, now.month, now.day);
               final tomorrow = today.add(Duration(days: 1));
-              final todayScreenings = screenings.where((s) =>
-                s.startTime.isAfter(today) && s.startTime.isBefore(tomorrow)
-              ).length;
+              final todayScreenings = screenings
+                  .where(
+                    (s) =>
+                        s.startTime.isAfter(today) &&
+                        s.startTime.isBefore(tomorrow),
+                  )
+                  .length;
 
               return SingleChildScrollView(
                 padding: AppSpacing.pagePadding,
@@ -852,7 +820,7 @@ class _DashboardOverview extends ConsumerWidget {
                       builder: (context, constraints) {
                         final screenWidth = MediaQuery.of(context).size.width;
                         final isMobile = screenWidth < 768.0;
-                        
+
                         if (isMobile) {
                           // Mobile: 2 cards per row
                           return Column(
@@ -867,7 +835,10 @@ class _DashboardOverview extends ConsumerWidget {
                                       change: 'Total',
                                       isPositive: true,
                                       gradient: LinearGradient(
-                                        colors: [AppColors.primary, AppColors.primaryDark],
+                                        colors: [
+                                          AppColors.primary,
+                                          AppColors.primaryDark,
+                                        ],
                                       ),
                                       isDark: isDark,
                                     ),
@@ -881,7 +852,10 @@ class _DashboardOverview extends ConsumerWidget {
                                       change: 'Activas',
                                       isPositive: true,
                                       gradient: LinearGradient(
-                                        colors: [AppColors.secondary, AppColors.secondaryDark],
+                                        colors: [
+                                          AppColors.secondary,
+                                          AppColors.secondaryDark,
+                                        ],
                                       ),
                                       isDark: isDark,
                                     ),
@@ -899,7 +873,10 @@ class _DashboardOverview extends ConsumerWidget {
                                       change: 'Disponibles',
                                       isPositive: true,
                                       gradient: LinearGradient(
-                                        colors: [AppColors.success, Color(0xFF059669)],
+                                        colors: [
+                                          AppColors.success,
+                                          Color(0xFF059669),
+                                        ],
                                       ),
                                       isDark: isDark,
                                     ),
@@ -913,7 +890,10 @@ class _DashboardOverview extends ConsumerWidget {
                                       change: 'Sistema',
                                       isPositive: true,
                                       gradient: LinearGradient(
-                                        colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                                        colors: [
+                                          Color(0xFFEF4444),
+                                          Color(0xFFDC2626),
+                                        ],
                                       ),
                                       isDark: isDark,
                                     ),
@@ -934,7 +914,10 @@ class _DashboardOverview extends ConsumerWidget {
                                   change: 'Total',
                                   isPositive: true,
                                   gradient: LinearGradient(
-                                    colors: [AppColors.primary, AppColors.primaryDark],
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.primaryDark,
+                                    ],
                                   ),
                                   isDark: isDark,
                                 ),
@@ -948,7 +931,10 @@ class _DashboardOverview extends ConsumerWidget {
                                   change: 'Activas',
                                   isPositive: true,
                                   gradient: LinearGradient(
-                                    colors: [AppColors.secondary, AppColors.secondaryDark],
+                                    colors: [
+                                      AppColors.secondary,
+                                      AppColors.secondaryDark,
+                                    ],
                                   ),
                                   isDark: isDark,
                                 ),
@@ -962,7 +948,10 @@ class _DashboardOverview extends ConsumerWidget {
                                   change: 'Disponibles',
                                   isPositive: true,
                                   gradient: LinearGradient(
-                                    colors: [AppColors.success, Color(0xFF059669)],
+                                    colors: [
+                                      AppColors.success,
+                                      Color(0xFF059669),
+                                    ],
                                   ),
                                   isDark: isDark,
                                 ),
@@ -976,7 +965,10 @@ class _DashboardOverview extends ConsumerWidget {
                                   change: 'Sistema',
                                   isPositive: true,
                                   gradient: LinearGradient(
-                                    colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                                    colors: [
+                                      Color(0xFFEF4444),
+                                      Color(0xFFDC2626),
+                                    ],
                                   ),
                                   isDark: isDark,
                                 ),
@@ -987,124 +979,124 @@ class _DashboardOverview extends ConsumerWidget {
                       },
                     ),
 
-            SizedBox(height: AppSpacing.xl),
+                    SizedBox(height: AppSpacing.xl),
 
-            Text(
-              'Actividad Reciente',
-              style: AppTypography.titleLarge.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: AppSpacing.md),
-
-            _buildActivityCard(
-              icon: Icons.movie_creation,
-              title: 'Nueva Película Agregada',
-              subtitle: '"Oppenheimer" fue agregada al catálogo',
-              time: 'Hace 2 horas',
-              color: AppColors.primary,
-              isDark: isDark,
-            ),
-
-            _buildActivityCard(
-              icon: Icons.calendar_today,
-              title: 'Función Programada',
-              subtitle: '5 nuevas funciones para el fin de semana',
-              time: 'Hace 4 horas',
-              color: AppColors.secondary,
-              isDark: isDark,
-            ),
-
-            _buildActivityCard(
-              icon: Icons.people,
-              title: 'Nuevo Usuario Registrado',
-              subtitle: '15 nuevos usuarios hoy',
-              time: 'Hace 1 hora',
-              color: AppColors.success,
-              isDark: isDark,
-            ),
-
-            SizedBox(height: AppSpacing.xl),
-            
-            // Quick Stats - Responsive Layout
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final screenWidth = MediaQuery.of(context).size.width;
-                final isMobile = screenWidth < 768.0;
-                
-                if (isMobile) {
-                  // Mobile: Horizontal scroll in one line
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 200,
-                          child: _buildQuickStatCard(
-                            title: 'Ocupación Promedio',
-                            value: '78%',
-                            icon: Icons.event_seat,
-                            isDark: isDark,
-                          ),
-                        ),
-                        SizedBox(width: AppSpacing.md),
-                        SizedBox(
-                          width: 200,
-                          child: _buildQuickStatCard(
-                            title: 'Película Más Vista',
-                            value: 'Avatar 2',
-                            icon: Icons.star,
-                            isDark: isDark,
-                          ),
-                        ),
-                        SizedBox(width: AppSpacing.md),
-                        SizedBox(
-                          width: 200,
-                          child: _buildQuickStatCard(
-                            title: 'Sala Más Usada',
-                            value: 'Sala 3',
-                            icon: Icons.meeting_room,
-                            isDark: isDark,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Actividad Reciente',
+                      style: AppTypography.titleLarge.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  );
-                } else {
-                  // Desktop & Tablet: All in one row
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: _buildQuickStatCard(
-                          title: 'Ocupación Promedio',
-                          value: '78%',
-                          icon: Icons.event_seat,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: _buildQuickStatCard(
-                          title: 'Película Más Vista',
-                          value: 'Avatar 2',
-                          icon: Icons.star,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: _buildQuickStatCard(
-                          title: 'Sala Más Usada',
-                          value: 'Sala 3',
-                          icon: Icons.meeting_room,
-                          isDark: isDark,
-                        ),
-                      ),
-                    ],
-                  );
-                }
-              },
-            ),
+                    SizedBox(height: AppSpacing.md),
+
+                    _buildActivityCard(
+                      icon: Icons.movie_creation,
+                      title: 'Nueva Película Agregada',
+                      subtitle: '"Oppenheimer" fue agregada al catálogo',
+                      time: 'Hace 2 horas',
+                      color: AppColors.primary,
+                      isDark: isDark,
+                    ),
+
+                    _buildActivityCard(
+                      icon: Icons.calendar_today,
+                      title: 'Función Programada',
+                      subtitle: '5 nuevas funciones para el fin de semana',
+                      time: 'Hace 4 horas',
+                      color: AppColors.secondary,
+                      isDark: isDark,
+                    ),
+
+                    _buildActivityCard(
+                      icon: Icons.people,
+                      title: 'Nuevo Usuario Registrado',
+                      subtitle: '15 nuevos usuarios hoy',
+                      time: 'Hace 1 hora',
+                      color: AppColors.success,
+                      isDark: isDark,
+                    ),
+
+                    SizedBox(height: AppSpacing.xl),
+
+                    // Quick Stats - Responsive Layout
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final screenWidth = MediaQuery.of(context).size.width;
+                        final isMobile = screenWidth < 768.0;
+
+                        if (isMobile) {
+                          // Mobile: Horizontal scroll in one line
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 200,
+                                  child: _buildQuickStatCard(
+                                    title: 'Ocupación Promedio',
+                                    value: '78%',
+                                    icon: Icons.event_seat,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                                SizedBox(width: AppSpacing.md),
+                                SizedBox(
+                                  width: 200,
+                                  child: _buildQuickStatCard(
+                                    title: 'Película Más Vista',
+                                    value: 'Avatar 2',
+                                    icon: Icons.star,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                                SizedBox(width: AppSpacing.md),
+                                SizedBox(
+                                  width: 200,
+                                  child: _buildQuickStatCard(
+                                    title: 'Sala Más Usada',
+                                    value: 'Sala 3',
+                                    icon: Icons.meeting_room,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          // Desktop & Tablet: All in one row
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _buildQuickStatCard(
+                                  title: 'Ocupación Promedio',
+                                  value: '78%',
+                                  icon: Icons.event_seat,
+                                  isDark: isDark,
+                                ),
+                              ),
+                              SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: _buildQuickStatCard(
+                                  title: 'Película Más Vista',
+                                  value: 'Avatar 2',
+                                  icon: Icons.star,
+                                  isDark: isDark,
+                                ),
+                              ),
+                              SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: _buildQuickStatCard(
+                                  title: 'Sala Más Usada',
+                                  value: 'Sala 3',
+                                  icon: Icons.meeting_room,
+                                  isDark: isDark,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                      },
+                    ),
                   ],
                 ),
               );
@@ -1233,7 +1225,9 @@ class _DashboardOverview extends ConsumerWidget {
                 Text(
                   subtitle,
                   style: AppTypography.bodySmall.copyWith(
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
                   ),
                 ),
               ],
@@ -1242,7 +1236,9 @@ class _DashboardOverview extends ConsumerWidget {
           Text(
             time,
             style: AppTypography.labelSmall.copyWith(
-              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              color: isDark
+                  ? AppColors.darkTextTertiary
+                  : AppColors.lightTextTertiary,
             ),
           ),
         ],

@@ -50,6 +50,7 @@ class FoodOrderService {
         'foodComboIds': order.foodComboIds,
         'totalPrice': order.totalPrice,
         'status': order.status,
+        'createdAt': DateTime.now().toUtc().toIso8601String(),
       });
 
       return response.success;
@@ -68,6 +69,8 @@ class FoodOrderService {
         'foodComboIds': order.foodComboIds,
         'totalPrice': order.totalPrice,
         'status': order.status,
+        'createdAt': order.createdAt?.toUtc().toIso8601String(),
+        'updatedAt': DateTime.now().toUtc().toIso8601String(),
       });
 
       return response.success;

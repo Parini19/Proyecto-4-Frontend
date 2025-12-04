@@ -4,8 +4,13 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cinema_button.dart';
 import '../../../core/widgets/cinema_text_field.dart';
+import '../../../core/widgets/searchable_dropdown.dart';
 import '../../../core/models/food_order.dart';
+import '../../../core/models/food_combo.dart';
 import '../../../core/services/food_order_service.dart';
+import '../../../core/services/food_combo_service.dart';
+import '../../../core/services/user_service.dart';
+import '../../../core/entities/user.dart';
 import '../../../core/utils/currency_formatter.dart';
 
 
@@ -19,10 +24,14 @@ class FoodOrdersManagementPage extends StatefulWidget {
 class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
   List<FoodOrder> _orders = [];
   List<FoodOrder> _filteredOrders = [];
+  List<User> _users = [];
+  List<FoodCombo> _foodCombos = [];
   bool _isLoading = false;
   String _searchQuery = '';
   String? _error;
   final FoodOrderService _foodOrderService = FoodOrderService();
+  final FoodComboService _foodComboService = FoodComboService();
+  final UserService _userService = UserService();
 
   @override
   void initState() {
@@ -31,7 +40,11 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
   }
 
   Future<void> _loadData() async {
-    await _loadFoodOrders();
+    await Future.wait([
+      _loadFoodOrders(),
+      _loadUsers(),
+      _loadFoodCombos(),
+    ]);
   }
 
   Future<void> _loadFoodOrders() async {
@@ -55,7 +68,30 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
     }
   }
 
+  Future<void> _loadUsers() async {
+    try {
+      final users = await _userService.getAllUsers();
+      setState(() {
+        _users = users;
+      });
+    } catch (e) {
+      // If users fail to load, we just continue without them
+      // This prevents the food orders page from breaking
+      print('Warning: Failed to load users: $e');
+    }
+  }
 
+  Future<void> _loadFoodCombos() async {
+    try {
+      final combos = await _foodComboService.getAllFoodCombos();
+      setState(() {
+        _foodCombos = combos.where((combo) => combo.isAvailable).toList();
+      });
+    } catch (e) {
+      // If food combos fail to load, we just continue without them
+      print('Warning: Failed to load food combos: $e');
+    }
+  }
 
   void _filterOrders() {
     if (_searchQuery.isEmpty) {
@@ -84,6 +120,20 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
   }
 
   Future<void> _updateOrderStatus(String orderId, String newStatus) async {
+    // Optimistic update - immediately update the UI
+    final orderIndex = _orders.indexWhere((order) => order.id == orderId);
+    if (orderIndex != -1) {
+      final updatedOrder = _orders[orderIndex].copyWith(
+        status: newStatus,
+        updatedAt: DateTime.now(),
+      );
+      
+      setState(() {
+        _orders[orderIndex] = updatedOrder;
+        _filterOrders(); // Update filtered list
+      });
+    }
+
     try {
       final success = await _foodOrderService.updateOrderStatus(orderId, newStatus);
       if (success) {
@@ -93,11 +143,15 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
             backgroundColor: AppColors.success,
           ),
         );
-        await _loadFoodOrders();
+        // No need to reload - already updated optimistically
       } else {
+        // Revert the optimistic update on failure
+        await _loadFoodOrders();
         _showErrorSnackBar('Error al actualizar el estado');
       }
     } catch (e) {
+      // Revert the optimistic update on error
+      await _loadFoodOrders();
       _showErrorSnackBar('Error: $e');
     }
   }
@@ -525,7 +579,7 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
                 Expanded(flex: 2, child: _buildHeaderCell('Usuario')),
                 Expanded(flex: 2, child: _buildHeaderCell('Total')),
                 Expanded(flex: 2, child: _buildHeaderCell('Estado')),
-                Expanded(flex: 2, child: _buildHeaderCell('Fecha')),
+                Expanded(flex: 2, child: _buildHeaderCell('Fecha ordenado')),
                 Expanded(flex: 2, child: _buildHeaderCell('Acciones')),
               ],
             ),
@@ -982,14 +1036,30 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
   }
 
   void _showAddEditOrderDialog({FoodOrder? order}) {
-    final userIdController = TextEditingController(text: order?.userId ?? '');
+    String? selectedUserId = order?.userId;
     final totalPriceController = TextEditingController(
       text: order?.totalPrice.toString() ?? '',
     );
-    final foodComboIdsController = TextEditingController(
-      text: order?.foodComboIds.join(', ') ?? '',
-    );
+    
+    // Initialize selected combos with quantities
+    Map<String, int> selectedCombos = {};
+    if (order != null && order.foodComboIds.isNotEmpty) {
+      for (String comboId in order.foodComboIds) {
+        selectedCombos[comboId] = (selectedCombos[comboId] ?? 0) + 1;
+      }
+    }
+    
     String selectedStatus = order?.status ?? FoodOrder.statusPending;
+    
+    // Function to calculate total price
+    void calculateTotalPrice() {
+      double total = 0.0;
+      selectedCombos.forEach((comboId, quantity) {
+        final combo = _foodCombos.firstWhere((c) => c.id == comboId, orElse: () => FoodCombo(id: '', name: '', description: '', price: 0, items: [], imageUrl: '', category: ''));
+        total += combo.price * quantity;
+      });
+      totalPriceController.text = total.toStringAsFixed(2);
+    }
 
     showDialog(
       context: context,
@@ -1007,19 +1077,277 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CinemaTextField(
-                    label: 'ID de Usuario *',
-                    controller: userIdController,
-                    hint: 'ID del usuario que realizó la orden',
+                  // User Selection
+                  SearchableDropdown<User>(
+                    label: 'Usuario *',
+                    hint: 'Selecciona un usuario',
                     prefixIcon: Icons.person,
+                    value: _users.where((u) => u.uid == selectedUserId).firstOrNull,
+                    items: _users,
+                    itemLabel: (user) => '${user.displayName} (${user.email})',
+                    onChanged: (user) {
+                      setState(() {
+                        selectedUserId = user?.uid;
+                      });
+                    },
                   ),
+                  
+                  // Warning message if no users available
+                  if (_users.isEmpty)
+                    Container(
+                      margin: EdgeInsets.only(top: AppSpacing.xs),
+                      padding: EdgeInsets.all(AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning, color: Colors.orange, size: 16),
+                          SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: Text(
+                              'No hay usuarios disponibles. Asegúrate de que existan usuarios registrados en el sistema.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange[800],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   SizedBox(height: AppSpacing.md),
-                  CinemaTextField(
-                    label: 'IDs de Combos de Comida *',
-                    controller: foodComboIdsController,
-                    hint: 'Separados por comas (ej: 1, 2, 3)',
-                    prefixIcon: Icons.fastfood,
-                    maxLines: 2,
+                  
+                  // Food Combos Multi-Select Section
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        Padding(
+                          padding: EdgeInsets.all(AppSpacing.md),
+                          child: Row(
+                            children: [
+                              Icon(Icons.fastfood, color: AppColors.primary, size: 20),
+                              SizedBox(width: AppSpacing.xs),
+                              Text(
+                                'Combos de Comida *',
+                                style: AppTypography.labelLarge.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // Available Combos List
+                        if (_foodCombos.isEmpty)
+                          Container(
+                            padding: EdgeInsets.all(AppSpacing.md),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning, color: Colors.orange, size: 16),
+                                SizedBox(width: AppSpacing.xs),
+                                Expanded(
+                                  child: Text(
+                                    'No hay combos de comida disponibles. Crea combos primero.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.orange[800],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Container(
+                            constraints: BoxConstraints(maxHeight: 300),
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: _foodCombos.length,
+                              itemBuilder: (context, index) {
+                                final combo = _foodCombos[index];
+                                final quantity = selectedCombos[combo.id] ?? 0;
+                                final isSelected = quantity > 0;
+                                
+                                return Container(
+                                  margin: EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.sm,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected 
+                                        ? AppColors.primary.withOpacity(0.1)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: isSelected
+                                        ? Border.all(color: AppColors.primary.withOpacity(0.3))
+                                        : null,
+                                  ),
+                                  child: ListTile(
+                                    dense: true,
+                                    leading: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: AppColors.primary.withOpacity(0.1),
+                                      ),
+                                      child: combo.imageUrl.isNotEmpty
+                                          ? ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: Image.network(
+                                                combo.imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => Icon(
+                                                  Icons.fastfood,
+                                                  color: AppColors.primary,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                            )
+                                          : Icon(
+                                              Icons.fastfood,
+                                              color: AppColors.primary,
+                                              size: 20,
+                                            ),
+                                    ),
+                                    title: Text(
+                                      combo.name,
+                                      style: AppTypography.bodyMedium.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      '${CurrencyFormatter.formatCRC(combo.price)} - ${combo.description}',
+                                      style: AppTypography.bodySmall,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    trailing: isSelected
+                                        ? Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                icon: Icon(Icons.remove_circle, color: AppColors.error),
+                                                iconSize: 20,
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (quantity > 1) {
+                                                      selectedCombos[combo.id] = quantity - 1;
+                                                    } else {
+                                                      selectedCombos.remove(combo.id);
+                                                    }
+                                                    calculateTotalPrice();
+                                                  });
+                                                },
+                                              ),
+                                              Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: AppSpacing.xs,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primary,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  quantity.toString(),
+                                                  style: AppTypography.bodySmall.copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                icon: Icon(Icons.add_circle, color: AppColors.success),
+                                                iconSize: 20,
+                                                onPressed: () {
+                                                  setState(() {
+                                                    selectedCombos[combo.id] = quantity + 1;
+                                                    calculateTotalPrice();
+                                                  });
+                                                },
+                                              ),
+                                            ],
+                                          )
+                                        : IconButton(
+                                            icon: Icon(Icons.add_circle_outline, color: AppColors.primary),
+                                            onPressed: () {
+                                              setState(() {
+                                                selectedCombos[combo.id] = 1;
+                                                calculateTotalPrice();
+                                              });
+                                            },
+                                          ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        
+                        // Selected Combos Summary
+                        if (selectedCombos.isNotEmpty)
+                          Container(
+                            margin: EdgeInsets.all(AppSpacing.sm),
+                            padding: EdgeInsets.all(AppSpacing.sm),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Combos Seleccionados:',
+                                  style: AppTypography.labelMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.success,
+                                  ),
+                                ),
+                                SizedBox(height: AppSpacing.xs),
+                                ...selectedCombos.entries.map((entry) {
+                                  final combo = _foodCombos.firstWhere(
+                                    (c) => c.id == entry.key,
+                                    orElse: () => FoodCombo(
+                                      id: entry.key,
+                                      name: 'Combo no encontrado',
+                                      description: '',
+                                      price: 0,
+                                      items: [],
+                                      imageUrl: '',
+                                      category: '',
+                                    ),
+                                  );
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: 4),
+                                    child: Text(
+                                      '• ${combo.name} x${entry.value} = ${CurrencyFormatter.formatCRC(combo.price * entry.value)}',
+                                      style: AppTypography.bodySmall.copyWith(
+                                        color: AppColors.success,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          ),
+                        
+                        SizedBox(height: AppSpacing.sm),
+                      ],
+                    ),
                   ),
                   SizedBox(height: AppSpacing.md),
                   CinemaTextField(
@@ -1132,20 +1460,20 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
               text: order == null ? 'Crear' : 'Guardar',
               onPressed: () async {
                 // Validate required fields
-                if (userIdController.text.trim().isEmpty) {
+                if (selectedUserId == null || selectedUserId!.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('El ID de usuario es requerido'),
+                      content: Text('Selecciona un usuario'),
                       backgroundColor: AppColors.error,
                     ),
                   );
                   return;
                 }
 
-                if (foodComboIdsController.text.trim().isEmpty) {
+                if (selectedCombos.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Los IDs de combos son requeridos'),
+                      content: Text('Selecciona al menos un combo de comida'),
                       backgroundColor: AppColors.error,
                     ),
                   );
@@ -1183,12 +1511,13 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
                 );
 
                 try {
-                  // Parse food combo IDs
-                  final foodComboIds = foodComboIdsController.text
-                      .split(',')
-                      .map((id) => id.trim())
-                      .where((id) => id.isNotEmpty)
-                      .toList();
+                  // Create food combo IDs list based on selected combos with quantities
+                  final List<String> foodComboIds = [];
+                  selectedCombos.forEach((comboId, quantity) {
+                    for (int i = 0; i < quantity; i++) {
+                      foodComboIds.add(comboId);
+                    }
+                  });
 
                   // Parse total price
                   final totalPrice = double.tryParse(totalPriceController.text.trim()) ?? 0.0;
@@ -1196,7 +1525,7 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
                   // Create FoodOrder from form data
                   final newOrder = FoodOrder(
                     id: order?.id ?? '', // Empty for new orders, backend will generate
-                    userId: userIdController.text.trim(),
+                    userId: selectedUserId!,
                     foodComboIds: foodComboIds,
                     totalPrice: totalPrice,
                     status: selectedStatus,
@@ -1228,8 +1557,22 @@ class _FoodOrdersManagementPageState extends State<FoodOrdersManagementPage> {
                       ),
                     );
 
-                    // Reload orders
-                    await _loadData();
+                    if (order == null) {
+                      // For new orders: Add optimistically to the list
+                      setState(() {
+                        _orders.insert(0, newOrder); // Add at the beginning (newest first)
+                        _filterOrders(); // Update filtered list
+                      });
+                    } else {
+                      // For updates: Find and replace the order
+                      final orderIndex = _orders.indexWhere((o) => o.id == order.id);
+                      if (orderIndex != -1) {
+                        setState(() {
+                          _orders[orderIndex] = newOrder;
+                          _filterOrders(); // Update filtered list
+                        });
+                      }
+                    }
                   } else {
                     _showErrorSnackBar(
                       order == null
